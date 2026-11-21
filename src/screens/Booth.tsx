@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, uid } from '../store';
 import { LAYOUTS, getLayout, getTemplate, layoutGeometry, slotAspect } from '../lib/templates';
 import { FILTERS, loadUpload } from '../lib/filters';
-import { DEFAULT_LOOK, makeShot } from '../lib/process';
+import { DEFAULT_LOOK, makeShot, warmUpRenderer } from '../lib/process';
 import { composeDuo } from '../lib/duo';
 import { EFFECTS } from '../lib/effects';
 import { sfx } from '../lib/sound';
@@ -50,6 +50,7 @@ export function Booth() {
 
   useEffect(() => {
     void hasMultipleCameras().then(setMultiCam);
+    warmUpRenderer();
     return () => {
       cancel.current = true;
     };

@@ -9,6 +9,19 @@ export const DEFAULT_LOOK: Look = { filter: 0, bright: 0, warm: 0, soft: 0 };
 let renderer: FilterRenderer | null = null;
 const getRenderer = () => (renderer ??= new FilterRenderer());
 
+/** Start compiling the photo shader in idle time, so the first photo after a countdown doesn't stall. */
+export function warmUpRenderer() {
+  const go = () => {
+    try {
+      void getRenderer().whenReady().catch(() => undefined);
+    } catch {
+      /* no WebGL: photos fall back where they're made */
+    }
+  };
+  if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 2000 });
+  else setTimeout(go, 500);
+}
+
 /** Draws raw → look → face-effect layer into a canvas, optionally downscaled to `maxW`. */
 export async function renderLook(raw: string, fx: string | undefined, look: Look, maxW?: number): Promise<HTMLCanvasElement> {
   const img = await loadImage(raw);
@@ -23,6 +36,7 @@ export async function renderLook(raw: string, fx: string | undefined, look: Look
     src = small;
   }
   const r = getRenderer();
+  await r.whenReady();
   r.render(src, w, h, look.filter, false, 1, look);
   const out = document.createElement('canvas');
   out.width = w;

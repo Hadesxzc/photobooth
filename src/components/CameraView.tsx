@@ -150,7 +150,13 @@ export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
       if (!v || v.readyState < 2 || !v.videoWidth) return;
       const w = v.videoWidth, h = v.videoHeight;
       const { filter, effect, mirror } = live.current;
-      renderer.render(v, w, h, filter, mirror, t / 1000);
+      try {
+        renderer.render(v, w, h, filter, mirror, t / 1000);
+      } catch {
+        stopped = true;
+        setGlError(true);
+        return;
+      }
       if (fxRef.current!.width !== w) {
         fxRef.current!.width = w;
         fxRef.current!.height = h;

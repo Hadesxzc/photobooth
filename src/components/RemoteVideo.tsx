@@ -60,7 +60,15 @@ export function RemoteVideo({ side, label, filter }: { side: 'left' | 'right'; l
     };
     const draw = (t: number) => {
       next();
-      if (v.readyState >= 2 && v.videoWidth) renderer!.render(v, v.videoWidth, v.videoHeight, filterRef.current, true, t / 1000);
+      if (!(v.readyState >= 2 && v.videoWidth)) return;
+      try {
+        renderer!.render(v, v.videoWidth, v.videoHeight, filterRef.current, true, t / 1000);
+      } catch {
+        // Shader failed: stop drawing and show the plain video instead.
+        stopped = true;
+        c.style.display = 'none';
+        v.style.opacity = '1';
+      }
     };
     raf = requestAnimationFrame(draw);
     return () => {

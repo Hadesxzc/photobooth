@@ -162,22 +162,46 @@ export class FilterRenderer {
   private gl: WebGLRenderingContext;
   private loc: Record<string, WebGLUniformLocation | null> = {};
   private tex: WebGLTexture;
+  private prog: WebGLProgram;
+  private shaders: WebGLShader[] = [];
+  private parallel: { COMPLETION_STATUS_KHR: number } | null;
+  private ready = false;
+  private live: boolean;
 
-  /** `live`: an on-screen preview that is never read back, so the browser can skip keeping a copy of each frame. */
+  /**
+   * `live`: an on-screen preview that is never read back, so the browser can skip keeping a copy of each frame.
+   * The shader compiles in the background where the browser supports it (KHR_parallel_shader_compile), so
+   * creating a renderer never freezes the page; live renderers skip frames until it's ready.
+   */
   constructor(canvas: HTMLCanvasElement = document.createElement('canvas'), live = false) {
     this.canvas = canvas;
+    this.live = live;
     const gl = canvas.getContext('webgl', { preserveDrawingBuffer: !live, premultipliedAlpha: false, antialias: false });
     if (!gl) throw new Error('WebGL is not available');
     this.gl = gl;
+    this.parallel = gl.getExtension('KHR_parallel_shader_compile');
     const prog = gl.createProgram()!;
     for (const [type, src] of [[gl.VERTEX_SHADER, VERT], [gl.FRAGMENT_SHADER, FRAG]] as const) {
-      const s = gl.createShader(type)!;
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) ?? 'shader error');
-      gl.attachShader(prog, s);
+      const sh = gl.createShader(type)!;
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      gl.attachShader(prog, sh);
+      this.shaders.push(sh);
     }
-    gl.linkProgram(prog);
+    gl.linkProgram(prog); // Status is checked later, so the compile can finish off the main thread.
+    this.prog = prog;
+    this.tex = gl.createTexture()!;
+  }
+
+  /** True once the shader is compiled. With `wait`, blocks until it is (the old behaviour). */
+  private prepare(wait: boolean): boolean {
+    if (this.ready) return true;
+    const gl = this.gl, prog = this.prog;
+    if (!wait && this.parallel && !gl.getProgramParameter(prog, this.parallel.COMPLETION_STATUS_KHR)) return false;
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      const log = this.shaders.map((sh) => gl.getShaderInfoLog(sh)).filter(Boolean).join('\n');
+      throw new Error(log || gl.getProgramInfoLog(prog) || 'shader error');
+    }
     gl.useProgram(prog);
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -186,15 +210,23 @@ export class FilterRenderer {
     gl.enableVertexAttribArray(a);
     gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
     for (const n of ['u_tex', 'u_mode', 'u_time', 'u_res', 'u_mirror', 'u_bright', 'u_warm', 'u_soft']) this.loc[n] = gl.getUniformLocation(prog, n);
-    this.tex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, this.tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    this.ready = true;
+    return true;
   }
 
-  render(source: TexImageSource, w: number, h: number, mode: number, mirror: boolean, time: number, adj: Adjust = NO_ADJUST) {
+  /** Resolves once the shader is compiled, without blocking the page while it compiles. */
+  async whenReady(): Promise<void> {
+    while (!this.prepare(false)) await new Promise((r) => setTimeout(r, 16));
+  }
+
+  /** Draws `source` with the filter. A live renderer returns false (and draws nothing) while still compiling. */
+  render(source: TexImageSource, w: number, h: number, mode: number, mirror: boolean, time: number, adj: Adjust = NO_ADJUST): boolean {
+    if (!this.prepare(!this.live)) return false;
     const gl = this.gl;
     if (this.canvas.width !== w || this.canvas.height !== h) {
       this.canvas.width = w;
@@ -212,10 +244,10 @@ export class FilterRenderer {
     gl.uniform1f(this.loc.u_warm, adj.warm);
     gl.uniform1f(this.loc.u_soft, adj.soft);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    return true;
   }
 }
 
-/** Reads an uploaded image, downscaled to at most `max` px on the long side, as an unfiltered JPEG. */
 export async function loadUpload(file: Blob, max = 1600): Promise<Blob> {
   const bmp = await createImageBitmap(file);
   const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
