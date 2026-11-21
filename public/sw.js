@@ -1,5 +1,5 @@
 // Minimal offline shell: network-first for pages, cache-first for built assets and fonts.
-const CACHE = 'insert-smile-v1';
+const CACHE = 'oh-snap-v1';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/icon.svg', '/manifest.webmanifest'])));
   self.skipWaiting();

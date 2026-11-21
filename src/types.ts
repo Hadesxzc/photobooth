@@ -2,7 +2,7 @@ export type Mode = 'solo' | 'together' | 'remote';
 export type Step = 'start' | 'template' | 'booth' | 'peek' | 'glow' | 'customize' | 'export';
 
 export type LayoutId = 'strip' | 'grid' | 'polaroid' | 'wide' | 'film';
-export type CollectionId = 'coquette' | 'kawaii' | 'night' | 'gameover' | 'cartridge' | 'garden' | 'holiday' | 'filmroll';
+export type CollectionId = 'coquette' | 'kawaii' | 'dream' | 'night' | 'gameover' | 'cartridge' | 'garden' | 'holiday' | 'filmroll';
 export type PatternId = 'none' | 'gingham' | 'stars' | 'dots' | 'checker' | 'grid' | 'stripes' | 'snow' | 'hearts';
 export type BorderId = 'none' | 'solid' | 'double' | 'dashed' | 'pixel' | 'white' | 'rounded' | 'lace' | 'washi' | 'pearl';
 export type SprinkleId = 'strawberries' | 'bows' | 'hearts' | 'pearls' | 'cherries' | 'sparkles' | 'flowers' | 'stars';
@@ -16,7 +16,8 @@ export type FontId =
   | 'Pixelify Sans'
   | 'Pinyon Script'
   | 'Playfair Display'
-  | 'Fredoka';
+  | 'Fredoka'
+  | 'Shrikhand';
 
 export type EffectId =
   | 'none'

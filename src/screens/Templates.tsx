@@ -51,7 +51,7 @@ function TemplateCard({ t, on, onClick }: { t: Template; on: boolean; onClick: (
     showDate: true,
     showScore: true,
     stickers: [],
-    sprinkles: t.collection === 'coquette' ? ['hearts'] : t.collection === 'kawaii' ? ['strawberries'] : [],
+    sprinkles: t.collection === 'coquette' ? ['hearts'] : t.collection === 'kawaii' ? ['strawberries'] : t.collection === 'dream' ? ['stars'] : [],
   };
   return (
     <button className={`tpl-card ${on ? 'tpl-on' : ''}`} onClick={onClick}>

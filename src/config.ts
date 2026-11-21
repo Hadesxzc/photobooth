@@ -1,5 +1,6 @@
-// Working title — the PRD leaves the product name open. Change it here.
-export const APP_NAME = 'INSERT SMILE';
+export const APP_NAME = 'Oh, Snap!';
+/** File-safe version of the name, for downloads and storage keys. */
+export const APP_SLUG = 'oh-snap';
 export const APP_TAGLINE = 'An arcade photobooth in your browser';
 
 export const RETRO = {
@@ -22,6 +23,7 @@ export const FONTS = [
   'Pinyon Script',
   'Playfair Display',
   'Fredoka',
+  'Shrikhand',
 ] as const;
 
 /** Export scale: base strip is 600×1800, so ×2 gives 1200×3600 (2×6 in at 600 dpi, crisp at 300). */

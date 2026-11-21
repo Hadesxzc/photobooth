@@ -1,6 +1,7 @@
 import type { Customization, Geometry, Rect, Sticker, Template } from '../types';
 import { drawSprite, spriteSize, STICKERS } from './sprites';
 import { layoutGeometry } from './templates';
+import { drawBalloon, drawOutlinedStar, drawPuffyText, drawRainbow, drawShootingStar, drawStarBear } from './bow';
 import { drawBow, drawBunny, drawCherry, drawFlower, drawHeart, drawLace, drawPearl, drawPearlRow, drawSparkle, drawStar, drawStrawberry } from './bow';
 import type { SprinkleId } from '../types';
 
@@ -359,6 +360,39 @@ function drawDeco(ctx: CanvasRenderingContext2D, t: Template, g: Geometry, cust:
       break;
     case 'filmroll':
       break;
+    case 'dream': {
+      // scattered pastel stars and dots in the margins
+      const starCols = ['#fff3a3', '#ffa9c9', '#b9d8ff', '#b8f0d2'];
+      let placed = 0, tries = 0;
+      while (placed < 16 && tries++ < 600) {
+        const x = rand() * g.w, y = rand() * g.h;
+        if (insideAny(x, y, g.slots, 14) || insideText(x, y, g)) continue;
+        if (placed % 3 === 2) {
+          ctx.fillStyle = starCols[placed % 4];
+          ctx.beginPath();
+          ctx.arc(x, y, 5 + rand() * 4, 0, Math.PI * 2);
+          ctx.fill();
+        } else drawOutlinedStar(ctx, x, y, 18 + rand() * 14, starCols[placed % 4], rand() * 0.6 - 0.3);
+        placed++;
+      }
+      const r0 = g.slots[0];
+      const tr = g.text;
+      if (t.layout === 'wide') {
+        drawRainbow(ctx, tr.x + tr.w / 2, tr.y + 120, 110);
+        drawStarBear(ctx, tr.x + tr.w / 2, tr.y + tr.h - 70, 110);
+      } else if (t.layout === 'grid' || t.layout === 'polaroid') {
+        drawRainbow(ctx, r0.x + 70, r0.y + 30, 90);
+        drawBalloon(ctx, g.w - 70, r0.y + 40, 70);
+        drawStarBear(ctx, tr.x + tr.w - 80, tr.y + tr.h / 2 + 6, 120, 0.08);
+        drawShootingStar(ctx, tr.x + 70, tr.y + 30, 40);
+      } else {
+        drawRainbow(ctx, r0.x + 60, r0.y + 22, 70);
+        drawBalloon(ctx, r0.x + r0.w - 30, r0.y + 34, 54);
+        drawStarBear(ctx, tr.x + tr.w - 40, tr.y + 6, 80, 0.12);
+        drawShootingStar(ctx, tr.x + 50, tr.y + tr.h - 26, 30);
+      }
+      break;
+    }
     case 'kawaii': {
       // polka dots in white over the pink pattern, berries in the margins, Mochi peeking in
       let placed = 0, tries = 0;
@@ -486,7 +520,7 @@ function drawText(ctx: CanvasRenderingContext2D, g: Geometry, cust: Customizatio
   ctx.textBaseline = 'middle';
   const lines: { text: string; font: string; weight: string; max: number; color: string }[] = [];
   const elegant = ELEGANT.includes(cust.font);
-  const heavy = cust.font === 'Anton' ? 110 : cust.font === 'Press Start 2P' ? 52 : cust.font === 'Pinyon Script' ? 170 : cust.font === 'Fredoka' ? 92 : 84;
+  const heavy = cust.font === 'Anton' ? 110 : cust.font === 'Press Start 2P' ? 52 : cust.font === 'Pinyon Script' ? 170 : cust.font === 'Fredoka' ? 92 : cust.font === 'Shrikhand' ? 96 : 84;
   const subFont = elegant ? 'Playfair Display' : 'Space Mono';
   const subWeight = elegant ? 'italic 500' : '700';
   if (cust.title) lines.push({ text: cust.title, font: cust.font, weight: cust.font === 'Playfair Display' ? 'italic 700' : ROUNDED.includes(cust.font) ? '700' : '400', max: Math.min(heavy, r.h * (cust.font === 'Pinyon Script' ? 0.62 : 0.46)), color: c.ink });
@@ -499,11 +533,18 @@ function drawText(ctx: CanvasRenderingContext2D, g: Geometry, cust: Customizatio
   const sizes = lines.map((l) => fitFont(ctx, l.text, l.font, l.weight, l.max, r.w));
   const total = sizes.reduce((a, s) => a + s * 1.25, 0);
   let y = r.y + (r.h - total) / 2;
+  const puffy = o.template.collection === 'dream' && cust.font === 'Fredoka';
   lines.forEach((l, i) => {
     const s = sizes[i];
-    ctx.font = `${l.weight} ${s}px "${l.font}"`;
-    ctx.fillStyle = l.color;
-    ctx.fillText(l.text, cx, y + (s * 1.25) / 2);
+    if (puffy && i === 0 && cust.title) {
+      drawPuffyText(ctx, l.text, cx, y + (s * 1.25) / 2, s * 1.05, r.w);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+    } else {
+      ctx.font = `${l.weight} ${s}px "${l.font}"`;
+      ctx.fillStyle = l.color;
+      ctx.fillText(l.text, cx, y + (s * 1.25) / 2);
+    }
     y += s * 1.25;
   });
 }

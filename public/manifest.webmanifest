@@ -1,10 +1,10 @@
 {
-  "name": "Insert Smile — Arcade Photobooth",
-  "short_name": "Insert Smile",
+  "name": "Oh, Snap! — a photobooth in your browser",
+  "short_name": "Oh, Snap!",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#171312",
-  "theme_color": "#171312",
+  "background_color": "#FFF4E8",
+  "theme_color": "#FFF4E8",
   "icons": [
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]

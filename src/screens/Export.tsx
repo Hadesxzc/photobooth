@@ -6,7 +6,7 @@ import { canvasToBlob } from '../lib/filters';
 import { makeStripGif } from '../lib/gif';
 import { sfx } from '../lib/sound';
 import { send, useRemote } from '../lib/remote';
-import { APP_NAME, EXPORT_SCALE } from '../config';
+import { APP_NAME, APP_SLUG, EXPORT_SCALE } from '../config';
 import { StripPreview, useSlotImages } from '../components/StripPreview';
 import { Button } from '../components/ui';
 
@@ -20,7 +20,7 @@ export function Export() {
   const [sent, setSent] = useState(false);
   const ready = images.length === cust.slotCount;
 
-  const fileBase = `${APP_NAME.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}`;
+  const fileBase = `${APP_SLUG}-${new Date().toISOString().slice(0, 10)}`;
 
   const renderPng = async () => {
     const c = document.createElement('canvas');

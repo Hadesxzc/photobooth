@@ -7,13 +7,14 @@ import { samplePhoto, sampleSet } from '../lib/samples';
 import type { CollectionId, Customization, EffectId, Sticker, Template } from '../types';
 import { StripPreview } from './StripPreview';
 import { PixelIcon } from './ui';
-import { Bow, Floaties, Heart, Pearls, Sparkle } from './Decor';
+import { Bow, Heart, Sparkle } from './Decor';
 
-const BRAND = APP_NAME.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+const BRAND = APP_NAME;
 
 const COLLECTION_FILTER: Record<CollectionId, number> = {
   coquette: 13,
   kawaii: 16,
+  dream: 18,
   night: 3,
   gameover: 1,
   cartridge: 9,
@@ -23,7 +24,7 @@ const COLLECTION_FILTER: Record<CollectionId, number> = {
 };
 
 function custOf(t: Template, extra: Partial<Customization> = {}): Customization {
-  return { ...t.defaults, colors: { ...t.defaults.colors }, subtitle: '', showDate: true, showScore: false, stickers: [], sprinkles: t.collection === 'coquette' ? ['hearts'] : t.collection === 'kawaii' ? ['strawberries'] : [], ...extra };
+  return { ...t.defaults, colors: { ...t.defaults.colors }, subtitle: '', showDate: true, showScore: false, stickers: [], sprinkles: t.collection === 'coquette' ? ['hearts'] : t.collection === 'kawaii' ? ['strawberries'] : t.collection === 'dream' ? ['stars'] : [], ...extra };
 }
 
 function SampleStrip({
@@ -66,7 +67,7 @@ const HERO = [
     filter: 14,
     effects: ['blush', 'none', 'catears', 'sparkles'] as EffectId[],
     people: [1] as (1 | 2)[],
-    extra: { title: 'sweet dreams', font: 'Playfair Display' as const, stickers: [st('bow', 0.84, 0.05, 0.55, 12)] },
+    extra: { title: 'sweet dreams', font: 'Shrikhand' as const, stickers: [st('bow', 0.84, 0.05, 0.55, 12)] },
   },
   {
     id: 'coquette-film',
@@ -101,33 +102,13 @@ const FAQ = [
   },
 ];
 
-type F = { kind: 'bow' | 'heart' | 'sparkle'; x: number; y: number; s: number; d: number; c?: string; r?: number };
-
-const HERO_FLOATIES: F[] = [
-  { kind: 'bow', x: 40, y: 88, s: 42, d: 0, r: -14 },
-  { kind: 'heart', x: 44, y: 6, s: 18, d: 1.2, c: '#f29bb0' },
-  { kind: 'sparkle', x: 50, y: 74, s: 20, d: 0.6, c: '#f2c46b' },
-  { kind: 'heart', x: 6, y: 82, s: 24, d: 2.1, c: '#f6b3c3' },
-  { kind: 'sparkle', x: 93, y: 12, s: 22, d: 1.6, c: '#ffffff' },
-  { kind: 'bow', x: 92, y: 84, s: 38, d: 2.6, c: '#e7a6c9', r: 12 },
-  { kind: 'heart', x: 68, y: 3, s: 14, d: 0.3, c: '#e889a2' },
-  { kind: 'sparkle', x: 30, y: 92, s: 14, d: 3, c: '#f29bb0' },
-];
-
-const SOFT_FLOATIES: F[] = [
-  { kind: 'heart', x: 2, y: 18, s: 18, d: 0.4, c: '#f6b3c3' },
-  { kind: 'sparkle', x: 96, y: 28, s: 18, d: 1.4, c: '#f2c46b' },
-  { kind: 'bow', x: 93, y: 82, s: 34, d: 2.2, r: 10 },
-  { kind: 'heart', x: 48, y: 96, s: 14, d: 1, c: '#e889a2' },
-];
 
 export function Landing({ onStart }: { onStart: () => void }) {
   return (
     <div className="lp">
       <header className="lp-nav">
         <a className="lp-logo" href={location.pathname}>
-          <Bow size={28} />
-          <span>{BRAND}</span>
+          {BRAND}
         </a>
         <nav className="lp-links" aria-label="Sections">
           <a href="#how">How it works</a>
@@ -141,31 +122,29 @@ export function Landing({ onStart }: { onStart: () => void }) {
       </header>
 
       <section className="lp-hero">
-        <div className="lp-hero-bg" aria-hidden />
-        <Floaties items={HERO_FLOATIES} />
         <div className="lp-hero-copy">
-          <p className="lp-script">your cute little photobooth</p>
+          <p className="lp-kicker">A photobooth for your phone or laptop</p>
           <h1>
-            Pretty photo strips, <em>made in your browser.</em>
+            Strike a pose. <em>Keep the strip.</em>
           </h1>
           <p className="lp-lead">
-            Strike four poses, add bows, blush and sparkles, then save a strip you'll actually want to post. Free, no sign-up,
-            and your photos never leave your phone.
+            Four photos, a countdown, and a strip you can actually post. Pick a template, add a bow or two, and save it. No
+            account, and your photos never leave your device.
           </p>
           <div className="lp-actions">
             <button className="lp-btn" onClick={onStart}>
-              <Heart size={16} color="#fff" /> Open the booth
+              Open the booth
             </button>
             <a className="lp-textlink" href="#templates">
               See all {TEMPLATES.length} templates
             </a>
           </div>
-          <div className="lp-trust">
-            <Pearls count={5} size={9} />
-            <span>No account · No watermark · Works on your phone</span>
-          </div>
         </div>
         <div className="lp-hero-art" aria-hidden>
+          <div className="lp-stamp">
+            <span>free</span>
+            <b>no sign-up</b>
+          </div>
           {HERO.map((h, i) => (
             <div key={h.id} className={`lp-hs lp-hs-${i}`}>
               {i === 1 && <Bow className="lp-hs-bow" size={60} />}
@@ -204,9 +183,8 @@ export function Landing({ onStart }: { onStart: () => void }) {
       </section>
 
       <section className="lp-row" id="how">
-        <Floaties items={SOFT_FLOATIES} />
         <div className="lp-row-copy">
-          <p className="lp-script">step one</p>
+          <p className="lp-kicker">No. 01 — Shoot</p>
           <h2>A countdown you can actually see.</h2>
           <p>
             Pick 3, 5 or 10 seconds. A little bar fills up before every shot, the screen flashes, and the next one starts on its
@@ -225,7 +203,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
 
       <section className="lp-row lp-row-flip" id="effects">
         <div className="lp-row-copy">
-          <p className="lp-script">step two</p>
+          <p className="lp-kicker">No. 02 — Add a look</p>
           <h2>Bows, blush and sparkles that follow your face.</h2>
           <p>
             {EFFECTS.length - 1} face effects and {FILTERS.length - 1} filters, from soft Rosé and Dreamy to film grain. You see
@@ -239,9 +217,8 @@ export function Landing({ onStart }: { onStart: () => void }) {
       </section>
 
       <section className="lp-row" id="templates">
-        <Floaties items={[...SOFT_FLOATIES].reverse()} />
         <div className="lp-row-copy">
-          <p className="lp-script">step three</p>
+          <p className="lp-kicker">No. 03 — Make it yours</p>
           <h2>{TEMPLATES.length} strips to make your own.</h2>
           <p>
             Start with Ribbon Club's bows and pearls or pick another collection. Change the colors, fonts, caption and stickers,
@@ -254,8 +231,8 @@ export function Landing({ onStart }: { onStart: () => void }) {
       </section>
 
       <section className="lp-modes">
-        <p className="lp-script center">who's coming?</p>
-        <h2>Bring your girls, even the far-away ones.</h2>
+        <p className="lp-kicker center">Who's in the photo</p>
+        <h2>Bring your friends. Even the far-away ones.</h2>
         <div className="lp-mode-cols">
           <div className="lp-mode lp-mode-pink">
             <Heart size={26} color="#e889a2" />
@@ -302,21 +279,19 @@ export function Landing({ onStart }: { onStart: () => void }) {
       </section>
 
       <section className="lp-final">
-        <Floaties items={HERO_FLOATIES.slice(0, 6)} />
-        <p className="lp-script">see you in the booth</p>
-        <h2>Your next favorite photo is a minute away.</h2>
+        <p className="lp-kicker">See you in the booth</p>
+        <h2>Your next favorite photo is one minute away.</h2>
         <button className="lp-btn" onClick={onStart}>
-          <Heart size={16} color="#fff" /> Open the booth
+          Open the booth
         </button>
       </section>
 
       <footer className="lp-footer">
         <div className="lp-footer-brand">
           <a className="lp-logo" href={location.pathname}>
-            <Bow size={24} />
-            <span>{BRAND}</span>
+            {BRAND}
           </a>
-          <p>A free photobooth for your browser, made with love and a lot of bows.</p>
+          <p>A free photobooth that lives in your browser.</p>
         </div>
         <div className="lp-footer-cols">
           <div>
@@ -368,7 +343,7 @@ function CameraMock() {
           </span>
         </div>
       </div>
-      <p className="lp-polaroid-caption">smile, cutie!</p>
+      <p className="lp-polaroid-caption">SMILE! — photo 2 of 4</p>
     </div>
   );
 }

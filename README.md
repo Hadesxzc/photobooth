@@ -1,6 +1,6 @@
-# Insert Smile — Arcade Photobooth
+# Oh, Snap! — a photobooth in your browser
 
-A free, no-account photobooth that runs entirely in the browser, built from the *Online Photobooth PRD*. "Insert Smile" is a working title; change it in `src/config.ts`.
+A free, no-account photobooth that runs entirely in the browser, built from the *Online Photobooth PRD*. The name lives in `src/config.ts`.
 
 ## Run it
 
@@ -9,6 +9,17 @@ npm install      # also copies MediaPipe's WASM into public/mediapipe
 npm run dev      # http://localhost:5173
 npm run build    # static site in dist/ (deploy to any static host + CDN)
 ```
+
+## Deploy
+
+It's a static site, so any static host works. The repo includes ready configs:
+
+- **Netlify** (`netlify.toml`) or **Vercel** (`vercel.json`): import the GitHub repo, and the build settings are picked up automatically.
+- **Cloudflare Pages / Render static site**: build command `npm run build`, output folder `dist`.
+
+Deploy at the root of a domain (not a sub-path like `/photobooth/`), because the service worker and manifest use root paths. Hosts serve HTTPS by default, which the camera requires.
+
+For production online co-op, consider running your own PeerJS server instead of the free public broker.
 
 The camera needs HTTPS or localhost. To test on a phone over your LAN, deploy a preview build or use an HTTPS tunnel.
 

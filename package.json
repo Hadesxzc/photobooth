@@ -1,5 +1,5 @@
 {
-  "name": "insert-smile-photobooth",
+  "name": "oh-snap-photobooth",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -24,5 +24,8 @@
     "@vitejs/plugin-react": "^4.3.3",
     "typescript": "~5.6.3",
     "vite": "^5.4.10"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

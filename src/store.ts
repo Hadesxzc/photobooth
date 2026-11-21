@@ -13,7 +13,7 @@ export const STEPS: { id: Step; label: string }[] = [
   { id: 'export', label: 'Save' },
 ];
 
-const SETTINGS_KEY = 'insert-smile-settings';
+const SETTINGS_KEY = 'oh-snap-settings';
 
 function loadSettings(): CaptureSettings {
   const base: CaptureSettings = {
@@ -42,7 +42,7 @@ function custFor(templateId: string, prev?: Customization): Customization {
     showDate: prev?.showDate ?? true,
     showScore: prev?.showScore ?? t.collection !== 'coquette',
     stickers: [],
-    sprinkles: t.collection === 'coquette' ? ['hearts'] : t.collection === 'kawaii' ? ['strawberries', 'hearts'] : [],
+    sprinkles: t.collection === 'coquette' ? ['hearts'] : t.collection === 'kawaii' ? ['strawberries', 'hearts'] : t.collection === 'dream' ? ['stars'] : [],
   };
 }
 
