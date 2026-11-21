@@ -222,7 +222,7 @@ function drawBorder(ctx: CanvasRenderingContext2D, x: number, y: number, w: numb
   }
 }
 
-function drawPattern(ctx: CanvasRenderingContext2D, p: string, g: Geometry, ink: string, rand: () => number) {
+export function drawPattern(ctx: CanvasRenderingContext2D, p: string, g: Geometry, ink: string, rand: () => number) {
   ctx.save();
   switch (p) {
     case 'gingham': {
@@ -632,7 +632,7 @@ function hash(s: string) {
   return h >>> 0;
 }
 
-function mulberry(a: number) {
+export function mulberry(a: number) {
   return () => {
     a |= 0;
     a = (a + 0x6d2b79f5) | 0;

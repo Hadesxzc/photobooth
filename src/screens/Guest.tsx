@@ -5,6 +5,7 @@ import { EFFECTS } from '../lib/effects';
 import { sfx } from '../lib/sound';
 import { joinSession, leaveSession, onMessage, send, useRemote } from '../lib/remote';
 import { APP_NAME } from '../config';
+import type { BackgroundId } from '../types';
 import { CameraView, type CameraHandle, type CamState } from '../components/CameraView';
 import { CountdownBar, type CountdownState } from '../components/Countdown';
 import { RemoteVideo } from '../components/RemoteVideo';
@@ -19,6 +20,7 @@ export function Guest({ hostId }: { hostId: string }) {
   const [templateId, setTemplateId] = useState('night-strip');
   const [hostName, setHostName] = useState('Friend');
   const [filter, setFilter] = useState(0);
+  const [background, setBackground] = useState<BackgroundId>('none');
   const [cd, setCd] = useState<CountdownState | null>(null);
   const [flash, setFlash] = useState(false);
   const [lit, setLit] = useState(false);
@@ -29,16 +31,22 @@ export function Guest({ hostId }: { hostId: string }) {
   settingsRef.current = settings;
 
   const template = getTemplate(templateId);
-  const aspect = useMemo(() => slotAspect(layoutGeometry(template.layout, template.defaults.slotCount).slots[0]), [template]);
+  const [hostAspect, setHostAspect] = useState<number | null>(null);
+  const defaultAspect = useMemo(() => slotAspect(layoutGeometry(template.layout, template.defaults.slotCount).slots[0]), [template]);
+  const aspect = hostAspect ?? defaultAspect;
 
   useEffect(() => {
     if (!joined) return;
     return onMessage(async (m) => {
       if (m.t === 'hello') {
         setTemplateId(m.templateId);
+        if (m.aspect) setHostAspect(m.aspect);
         if (m.players[0] && m.players[0] !== 'PLAYER 1') setHostName(m.players[0]);
       }
-      if (m.t === 'look') setFilter(m.filter);
+      if (m.t === 'look') {
+        setFilter(m.filter);
+        setBackground(m.background ?? 'none');
+      }
       if (m.t === 'shoot') {
         setCd({ total: m.countdown, startedAt: performance.now(), banner: `Together · photo ${m.index + 1}` });
         await new Promise((r) => setTimeout(r, m.countdown * 1000));
@@ -128,8 +136,9 @@ export function Guest({ hostId }: { hostId: string }) {
           facing={settings.facing}
           onCamState={setCamState}
           duo="right"
+          background={background}
         >
-          <RemoteVideo side="left" label={hostName} filter={filter} />
+          <RemoteVideo side="left" label={hostName} filter={filter} aspect={aspect} background={background} />
           <span className="duo-tag duo-tag-right">You</span>
           {settings.light && <div className={`ring-light ${cd ? 'ring-strong' : ''}`} aria-hidden />}
           {lit && <div className="screen-flash" aria-hidden />}
@@ -149,7 +158,7 @@ export function Guest({ hostId }: { hostId: string }) {
         </div>
       </div>
       <aside className="booth-panel">
-        <p className="muted small">{hostName} picks the filter, so you both match in every photo.</p>
+        <p className="muted small">{hostName} picks the filter and background, so you both match in every photo.</p>
         <Label>Face effect</Label>
         <div className="fx-grid">
           {EFFECTS.map((e) => (

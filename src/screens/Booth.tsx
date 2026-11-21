@@ -13,6 +13,7 @@ import { CountdownBar, type CountdownState } from '../components/Countdown';
 import { Button, Chip, Label, PixelIcon, Segmented, Toggle } from '../components/ui';
 import { RemoteVideo } from '../components/RemoteVideo';
 import { Bow } from '../components/Decor';
+import { BackgroundPicker } from '../components/BackgroundPicker';
 import type { LayoutId } from '../types';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -61,13 +62,13 @@ export function Booth() {
   }, [pendingRetake, camOn, setCamOn]);
 
   useEffect(() => {
-    if (mode === 'remote' && remote.status === 'connected') send({ t: 'hello', templateId, players });
-  }, [mode, remote.status, templateId, players]);
+    if (mode === 'remote' && remote.status === 'connected') send({ t: 'hello', templateId, players, aspect });
+  }, [mode, remote.status, templateId, players, aspect]);
 
-  // Keep the friend's preview on the same filter, so both halves of the shared frame match.
+  // Keep the friend's preview on the same filter and background, so both halves of the shared frame match.
   useEffect(() => {
-    if (mode === 'remote' && remote.status === 'connected') send({ t: 'look', filter: settings.filter });
-  }, [mode, remote.status, settings.filter]);
+    if (mode === 'remote' && remote.status === 'connected') send({ t: 'look', filter: settings.filter, background: settings.background });
+  }, [mode, remote.status, settings.filter, settings.background]);
 
   useEffect(() => {
     if (faceState === 'slow') {
@@ -245,10 +246,11 @@ export function Booth() {
               onStream={(s) => mode === 'remote' && ensureCall(s)}
               onUpload={() => fileRef.current?.click()}
               duo={mode === 'remote' ? 'left' : undefined}
+              background={settings.background}
             >
               {mode === 'remote' && (
                 <>
-                  <RemoteVideo side="right" label={friendName} filter={settings.filter} />
+                  <RemoteVideo side="right" label={friendName} filter={settings.filter} aspect={aspect} background={settings.background} />
                   <span className="duo-tag duo-tag-left">{myName}</span>
                 </>
               )}
@@ -405,6 +407,11 @@ export function Booth() {
 
           {tab === 'look' && (
             <>
+              <Label>Background</Label>
+              <BackgroundPicker value={settings.background} onChange={(id) => patchSettings({ background: id })} match={template.collection} />
+              {mode === 'remote' && settings.background !== 'none' && (
+                <p className="muted small">You and {friendName} share this background, so you look like you're in the same place.</p>
+              )}
               <Label>Face effect</Label>
               <div className="fx-grid">
                 {EFFECTS.map((e) => (

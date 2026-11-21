@@ -26,6 +26,7 @@ function loadSettings(): CaptureSettings {
     facing: 'user',
     filter: 0,
     effect: 'none',
+    background: 'none',
   };
   try {
     return { ...base, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };

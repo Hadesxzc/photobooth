@@ -300,20 +300,29 @@ export function drawBunny(ctx: CanvasRenderingContext2D, x: number, y: number, s
 // ---- Dreamland: sticker-style pastel pieces with thick dark outlines ----
 const DREAM_INK = '#3a2a4f';
 
+/** A puffy outlined cloud centred on (x, y). The outline is drawn first and the fill on top, so no lines cross the inside. */
 export function drawCloud(ctx: CanvasRenderingContext2D, x: number, y: number, w: number) {
   const r = w / 4;
+  const puffs: [number, number, number][] = [
+    [-1.15, 0.25, 0.75], [-0.35, -0.35, 1], [0.6, -0.15, 0.9], [1.25, 0.3, 0.68], [0.1, 0.35, 0.85],
+  ];
+  const body = () => {
+    ctx.beginPath();
+    for (const [px, py, pr] of puffs) {
+      ctx.moveTo(x + px * r + pr * r, y + py * r);
+      ctx.arc(x + px * r, y + py * r, pr * r, 0, Math.PI * 2);
+    }
+    ctx.rect(x - r * 1.15, y, r * 2.4, r * 0.95);
+  };
   ctx.save();
-  ctx.lineWidth = Math.max(2, w * 0.045);
+  body();
+  ctx.lineWidth = Math.max(4, w * 0.09);
+  ctx.lineJoin = 'round';
   ctx.strokeStyle = DREAM_INK;
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(x - r * 1.1, y + r * 0.2, r * 0.8, Math.PI * 0.5, Math.PI * 1.5);
-  ctx.arc(x - r * 0.3, y - r * 0.45, r, Math.PI * 1.05, Math.PI * 1.9);
-  ctx.arc(x + r * 0.8, y - r * 0.1, r * 0.85, Math.PI * 1.25, Math.PI * 0.2);
-  ctx.arc(x + r * 1.15, y + r * 0.35, r * 0.65, Math.PI * 1.6, Math.PI * 0.5);
-  ctx.closePath();
-  ctx.fill();
   ctx.stroke();
+  body();
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
   ctx.restore();
 }
 

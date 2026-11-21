@@ -50,6 +50,23 @@ uniform vec2 u_res;
 uniform float u_bright;
 uniform float u_warm;
 uniform float u_soft;
+// Background replacement: person mask (video orientation) + backdrop placed in screen space.
+uniform sampler2D u_bg;
+uniform sampler2D u_mask;
+uniform float u_useBg;
+uniform float u_flip;
+uniform vec4 u_bgMap;
+
+vec3 src(vec2 uv) {
+  vec3 c = texture2D(u_tex, uv).rgb;
+  if (u_useBg > 0.5) {
+    float m = smoothstep(0.3, 0.7, texture2D(u_mask, uv).r);
+    vec2 scr = u_flip > 0.5 ? vec2(1.0 - uv.x, uv.y) : uv;
+    vec3 b = texture2D(u_bg, clamp(scr * u_bgMap.xy + u_bgMap.zw, 0.0, 1.0)).rgb;
+    c = mix(b, c, m);
+  }
+  return c;
+}
 
 float rand(vec2 co) { return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453); }
 float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
@@ -67,13 +84,13 @@ void main() {
     vec2 block = vec2(u_res.x / cols);
     uv = (floor(uv * u_res / block) + 0.5) * block / u_res;
   }
-  vec3 c = texture2D(u_tex, uv).rgb;
+  vec3 c = src(uv).rgb;
   if (u_soft > 0.0) {
     vec2 px = 2.5 / u_res;
-    vec3 b = (texture2D(u_tex, uv + vec2(px.x, 0.0)).rgb + texture2D(u_tex, uv - vec2(px.x, 0.0)).rgb +
-              texture2D(u_tex, uv + vec2(0.0, px.y)).rgb + texture2D(u_tex, uv - vec2(0.0, px.y)).rgb +
-              texture2D(u_tex, uv + px).rgb + texture2D(u_tex, uv - px).rgb +
-              texture2D(u_tex, uv + vec2(px.x, -px.y)).rgb + texture2D(u_tex, uv + vec2(-px.x, px.y)).rgb) * 0.125;
+    vec3 b = (src(uv + vec2(px.x, 0.0)).rgb + src(uv - vec2(px.x, 0.0)).rgb +
+              src(uv + vec2(0.0, px.y)).rgb + src(uv - vec2(0.0, px.y)).rgb +
+              src(uv + px).rgb + src(uv - px).rgb +
+              src(uv + vec2(px.x, -px.y)).rgb + src(uv + vec2(-px.x, px.y)).rgb) * 0.125;
     float l = luma(c);
     float mid = smoothstep(0.12, 0.45, l) * (1.0 - smoothstep(0.8, 0.97, l));
     c = mix(c, b, u_soft * 0.75 * mid);
@@ -105,8 +122,8 @@ void main() {
     c = vignette(c, v_uv, 0.4);
   } else if (u_mode == 7) {
     float wob = sin(v_uv.y * 40.0 + u_time * 3.0) * 0.0015;
-    c.r = texture2D(u_tex, uv + vec2(0.006 + wob, 0.0)).r;
-    c.b = texture2D(u_tex, uv - vec2(0.006 - wob, 0.0)).b;
+    c.r = src(uv + vec2(0.006 + wob, 0.0)).r;
+    c.b = src(uv - vec2(0.006 - wob, 0.0)).b;
     c = sat(c, 0.7);
     float band = smoothstep(0.0, 0.02, abs(fract(v_uv.y - u_time * 0.08) - 0.5));
     c *= 0.85 + 0.15 * band;
@@ -133,8 +150,8 @@ void main() {
     c = sat(c, 0.9) * vec3(1.06, 0.96, 0.98) + vec3(0.06, 0.02, 0.04);
     c = mix(c, vec3(1.0, 0.82, 0.86), 0.12);
   } else if (u_mode == 14) {
-    vec3 blur = (texture2D(u_tex, uv + vec2(0.004, 0.0)).rgb + texture2D(u_tex, uv - vec2(0.004, 0.0)).rgb +
-                 texture2D(u_tex, uv + vec2(0.0, 0.005)).rgb + texture2D(u_tex, uv - vec2(0.0, 0.005)).rgb) * 0.25;
+    vec3 blur = (src(uv + vec2(0.004, 0.0)).rgb + src(uv - vec2(0.004, 0.0)).rgb +
+                 src(uv + vec2(0.0, 0.005)).rgb + src(uv - vec2(0.0, 0.005)).rgb) * 0.25;
     c = mix(c, max(c, blur), 0.6);
     c = sat(c, 0.85) * 0.9 + vec3(0.1, 0.08, 0.1);
     c = mix(c, vec3(1.0, 0.92, 0.95), 0.1);
@@ -167,6 +184,13 @@ export class FilterRenderer {
   private parallel: { COMPLETION_STATUS_KHR: number } | null;
   private ready = false;
   private live: boolean;
+  private bgTex: WebGLTexture | null = null;
+  private maskTex: WebGLTexture | null = null;
+  private bgSource: TexImageSource | null = null;
+  private bgDirty = false;
+  private mask: { data: Uint8Array; w: number; h: number } | null = null;
+  private maskDirty = false;
+  private bgMap: [number, number, number, number] = [1, 1, 0, 0];
 
   /**
    * `live`: an on-screen preview that is never read back, so the browser can skip keeping a copy of each frame.
@@ -209,7 +233,10 @@ export class FilterRenderer {
     const a = gl.getAttribLocation(prog, 'a_pos');
     gl.enableVertexAttribArray(a);
     gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
-    for (const n of ['u_tex', 'u_mode', 'u_time', 'u_res', 'u_mirror', 'u_bright', 'u_warm', 'u_soft']) this.loc[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['u_tex', 'u_mode', 'u_time', 'u_res', 'u_mirror', 'u_bright', 'u_warm', 'u_soft', 'u_bg', 'u_mask', 'u_useBg', 'u_flip', 'u_bgMap'])
+      this.loc[n] = gl.getUniformLocation(prog, n);
+    gl.uniform1i(this.loc.u_bg, 1);
+    gl.uniform1i(this.loc.u_mask, 2);
     gl.bindTexture(gl.TEXTURE_2D, this.tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -217,6 +244,38 @@ export class FilterRenderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     this.ready = true;
     return true;
+  }
+
+  /** Backdrop to show behind the person (null = the real room). Uploaded once, on the next render. */
+  setBackground(img: TexImageSource | null) {
+    if (img === this.bgSource) return;
+    this.bgSource = img;
+    this.bgDirty = !!img;
+  }
+
+  /** Where the backdrop sits, as a screen-uv → backdrop-uv mapping (scale x/y, offset x/y). */
+  setBackgroundMap(map: [number, number, number, number]) {
+    this.bgMap = map;
+  }
+
+  /** Person mask for the current frame (255 = person), in the video's orientation; null = no mask yet. */
+  setMask(mask: { data: Uint8Array; w: number; h: number } | null) {
+    this.mask = mask;
+    this.maskDirty = !!mask;
+  }
+
+  private texture(unit: number, existing: WebGLTexture | null) {
+    const gl = this.gl;
+    const t = existing ?? gl.createTexture()!;
+    gl.activeTexture(gl.TEXTURE0 + unit);
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    if (!existing) {
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    }
+    return t;
   }
 
   /** Resolves once the shader is compiled, without blocking the page while it compiles. */
@@ -233,6 +292,30 @@ export class FilterRenderer {
       this.canvas.height = h;
     }
     gl.viewport(0, 0, w, h);
+    const useBg = !!(this.bgSource && this.mask);
+    if (useBg) {
+      if (this.bgDirty) {
+        this.bgTex = this.texture(1, this.bgTex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.bgSource!);
+        this.bgDirty = false;
+      }
+      if (this.maskDirty) {
+        const m = this.mask!;
+        this.maskTex = this.texture(2, this.maskTex);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, m.w, m.h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, m.data);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+        this.maskDirty = false;
+      }
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, this.bgTex);
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, this.maskTex);
+    }
+    gl.uniform1f(this.loc.u_useBg, useBg ? 1 : 0);
+    gl.uniform1f(this.loc.u_flip, mirror ? 1 : 0);
+    gl.uniform4f(this.loc.u_bgMap, ...this.bgMap);
+    gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
     gl.uniform1i(this.loc.u_tex, 0);

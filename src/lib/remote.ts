@@ -1,18 +1,19 @@
 import { create } from 'zustand';
 import type { DataConnection, MediaConnection, Peer as PeerT } from 'peerjs';
 import { currentStream } from './camera';
+import type { BackgroundId } from '../types';
 
 // Remote co-op: peer-to-peer over WebRTC. PeerJS's public broker is used only to exchange
 // connection details; photos and video go directly between the two browsers.
 
 export type RemoteMsg =
-  | { t: 'hello'; templateId: string; players: string[] }
+  | { t: 'hello'; templateId: string; players: string[]; aspect?: number }
   | { t: 'shoot'; index: number; countdown: number }
   | { t: 'status'; text: string }
   | { t: 'shot'; index: number; data: ArrayBuffer; fx?: ArrayBuffer }
   | { t: 'strip'; data: ArrayBuffer; name: string }
   | { t: 'name'; name: string }
-  | { t: 'look'; filter: number };
+  | { t: 'look'; filter: number; background: BackgroundId };
 
 interface RemoteState {
   role: 'host' | 'guest' | null;
