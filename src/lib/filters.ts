@@ -60,7 +60,7 @@ uniform vec4 u_bgMap;
 vec3 src(vec2 uv) {
   vec3 c = texture2D(u_tex, uv).rgb;
   if (u_useBg > 0.5) {
-    float m = smoothstep(0.3, 0.7, texture2D(u_mask, uv).r);
+    float m = smoothstep(0.25, 0.75, texture2D(u_mask, uv).r);
     vec2 scr = u_flip > 0.5 ? vec2(1.0 - uv.x, uv.y) : uv;
     vec3 b = texture2D(u_bg, clamp(scr * u_bgMap.xy + u_bgMap.zw, 0.0, 1.0)).rgb;
     c = mix(b, c, m);

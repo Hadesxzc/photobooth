@@ -115,8 +115,8 @@ export interface CaptureSettings {
   facing: 'user' | 'environment';
   filter: number;
   effect: EffectId;
-  /** Backdrop behind the person: 'none' keeps the real room, otherwise a strip collection's themed scene. */
+  /** Backdrop behind the person: 'none' keeps the real room, a strip collection's themed scene, or a solid '#rrggbb' colour. */
   background: BackgroundId;
 }
 
-export type BackgroundId = 'none' | CollectionId;
+export type BackgroundId = 'none' | CollectionId | `#${string}`;

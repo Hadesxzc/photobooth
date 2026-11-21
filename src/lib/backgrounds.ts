@@ -17,6 +17,22 @@ export const BACKGROUNDS: { id: BackgroundId; name: string }[] = [
   ...COLLECTIONS.map((c) => ({ id: c.id as BackgroundId, name: c.name })),
 ];
 
+/** Plain studio colours, picked to sit well with the strip palettes. Any other '#rrggbb' works too. */
+export const SOLID_COLORS: { color: `#${string}`; name: string }[] = [
+  { color: '#ffffff', name: 'White' },
+  { color: '#fff4e8', name: 'Cream' },
+  { color: '#ffd3df', name: 'Blush' },
+  { color: '#ffe08a', name: 'Butter' },
+  { color: '#c9f2d8', name: 'Mint' },
+  { color: '#bfdcff', name: 'Sky' },
+  { color: '#e9dcff', name: 'Lavender' },
+  { color: '#d7263d', name: 'Cherry' },
+  { color: '#2b1a1f', name: 'Ink' },
+  { color: '#000000', name: 'Black' },
+];
+
+export const isSolid = (id: BackgroundId): id is `#${string}` => /^#[0-9a-f]{6}$/i.test(id);
+
 /** Wide enough to cover both a single camera (4:3) and the shared two-person frame. */
 export const BG_W = 1600;
 export const BG_H = 1000;
@@ -28,6 +44,16 @@ export function getBackground(id: BackgroundId): HTMLCanvasElement | null {
   const hit = cache.get(id);
   if (hit) return hit;
   const c = document.createElement('canvas');
+  if (isSolid(id)) {
+    // A tiny canvas is enough for a flat colour; the GPU stretches it.
+    c.width = c.height = 4;
+    const x = c.getContext('2d')!;
+    x.fillStyle = id;
+    x.fillRect(0, 0, 4, 4);
+    cache.set(id, c);
+    return c;
+  }
+  if (!COLLECTIONS.some((col) => col.id === id)) return null;
   c.width = BG_W;
   c.height = BG_H;
   paint(c.getContext('2d')!, id);
