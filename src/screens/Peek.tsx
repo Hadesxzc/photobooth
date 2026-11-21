@@ -37,7 +37,7 @@ export function Peek() {
         <div className="peek-grid">
           {slotMap.map((shotIndex, slot) => {
             const s = shotIndex !== null ? shots[shotIndex] : undefined;
-            const who = mode !== 'solo' && s ? players[s.player] || `Player ${s.player + 1}` : null;
+            const who = mode !== 'solo' && mode !== 'remote' && s ? players[s.player] || `Player ${s.player + 1}` : null;
             return (
               <figure key={slot} className={`peek-card ${sel === slot ? 'peek-sel' : ''}`}>
                 <button className="peek-photo" onClick={() => tap(slot)} aria-pressed={sel === slot} aria-label={`Photo ${slot + 1}, tap to move`}>

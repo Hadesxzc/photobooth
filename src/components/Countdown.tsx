@@ -15,8 +15,16 @@ export function CountdownBar({ state, sound }: { state: CountdownState | null; s
     if (!state) return;
     lastSec.current = -1;
     let raf = 0;
+    let shown = '';
+    // Re-render only when the number or the progress bar actually changes, not on every frame.
     const loop = () => {
-      setNow(performance.now());
+      const t = performance.now();
+      const el = Math.max(0, (t - state.startedAt) / 1000);
+      const key = `${Math.ceil(state.total - el)}:${Math.floor(Math.min(1, el / state.total) * 12 + 0.0001)}`;
+      if (key !== shown) {
+        shown = key;
+        setNow(t);
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);

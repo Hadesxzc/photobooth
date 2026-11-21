@@ -24,11 +24,13 @@ interface Props {
   onCamState?: (s: CamState) => void;
   onFaceState?: (s: FaceState) => void;
   onUpload?: () => void;
+  /** "Friend, far away": which half of the shared frame this camera fills. */
+  duo?: 'left' | 'right';
   children?: ReactNode;
 }
 
 export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
-  { aspect, filter, effect, mirror, facing, onStream, onCamState, onFaceState, onUpload, children },
+  { aspect, filter, effect, mirror, facing, onStream, onCamState, onFaceState, onUpload, duo, children },
   ref
 ) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -100,19 +102,47 @@ export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
   useEffect(() => {
     let renderer: FilterRenderer;
     try {
-      renderer = new FilterRenderer(glRef.current!);
+      renderer = new FilterRenderer(glRef.current!, true);
     } catch {
       setGlError(true);
       return;
     }
     const fx = fxRef.current!.getContext('2d')!;
-    let raf = 0;
+    let raf = 0, vfc = 0, watchdog = 0, stopped = false;
+    let fxDirty = true;
     let lastVideoTime = -1;
     let faces: { x: number; y: number }[][] = [];
     let frames = 0, windowStart = performance.now(), slowWindows = 0;
 
+    // Draw only when the camera delivers a new frame (requestVideoFrameCallback), instead of on every
+    // display refresh. On 60–120 Hz screens with a 30 fps camera this halves the GPU and face-tracking work.
+    // A short watchdog falls back to animation frames if the video stalls (e.g. while switching cameras).
+    type VfcVideo = HTMLVideoElement & {
+      requestVideoFrameCallback?: (cb: (now: number) => void) => number;
+      cancelVideoFrameCallback?: (id: number) => void;
+    };
+    const schedule = () => {
+      if (stopped) return;
+      const v = videoRef.current as VfcVideo | null;
+      if (v?.requestVideoFrameCallback && v.readyState >= 2) {
+        let fired = false;
+        vfc = v.requestVideoFrameCallback((now) => {
+          fired = true;
+          clearTimeout(watchdog);
+          loop(now);
+        });
+        watchdog = window.setTimeout(() => {
+          if (fired) return;
+          v.cancelVideoFrameCallback?.(vfc);
+          raf = requestAnimationFrame(loop);
+        }, 250);
+      } else {
+        raf = requestAnimationFrame(loop);
+      }
+    };
+
     const loop = (t: number) => {
-      raf = requestAnimationFrame(loop);
+      schedule();
       const v = videoRef.current;
       if (!v || v.readyState < 2 || !v.videoWidth) return;
       const w = v.videoWidth, h = v.videoHeight;
@@ -146,10 +176,17 @@ export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
         frames = 0;
         windowStart = t;
       }
+      if (effect === 'none' && !fxDirty) return;
       drawEffects(fx, effect, faces, w, h, mirror, t);
+      fxDirty = effect !== 'none';
     };
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      stopped = true;
+      cancelAnimationFrame(raf);
+      clearTimeout(watchdog);
+      (videoRef.current as VfcVideo | null)?.cancelVideoFrameCallback?.(vfc);
+    };
   }, []);
 
   useImperativeHandle(ref, () => ({
@@ -172,7 +209,7 @@ export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
   }));
 
   return (
-    <div className="cam" style={{ aspectRatio: String(aspect) }}>
+    <div className={duo ? `cam duo duo-me-${duo}` : 'cam'} style={{ aspectRatio: String(aspect) }}>
       <video ref={videoRef} className="cam-video" playsInline muted autoPlay />
       <canvas ref={glRef} className="cam-layer" />
       <canvas ref={fxRef} className="cam-layer" />

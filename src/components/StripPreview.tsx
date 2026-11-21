@@ -31,7 +31,7 @@ export function useSlotImages() {
       live = false;
     };
   }, [shots, slotMap]);
-  const labels = slotMap.map((i) => (mode !== 'solo' && i !== null && shots[i] ? `P${shots[i].player + 1}` : null));
+  const labels = slotMap.map((i) => (mode !== 'solo' && mode !== 'remote' && i !== null && shots[i] ? `P${shots[i].player + 1}` : null));
   return { images, labels: mode === 'solo' ? undefined : labels, players };
 }
 

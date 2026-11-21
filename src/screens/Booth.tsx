@@ -3,6 +3,7 @@ import { useStore, uid } from '../store';
 import { LAYOUTS, getLayout, getTemplate, layoutGeometry, slotAspect } from '../lib/templates';
 import { FILTERS, loadUpload } from '../lib/filters';
 import { DEFAULT_LOOK, makeShot } from '../lib/process';
+import { composeDuo } from '../lib/duo';
 import { EFFECTS } from '../lib/effects';
 import { sfx } from '../lib/sound';
 import { hasMultipleCameras } from '../lib/camera';
@@ -19,7 +20,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const HEAD = {
   solo: { kicker: 'solo booth', title: 'Just you, looking cute.' },
   together: { kicker: 'friends booth', title: 'Squeeze in together.' },
-  remote: { kicker: 'long-distance booth', title: 'Two cameras, one strip.' },
+  remote: { kicker: 'long-distance booth', title: 'Miles apart, same frame.' },
 };
 
 export function Booth() {
@@ -62,6 +63,11 @@ export function Booth() {
     if (mode === 'remote' && remote.status === 'connected') send({ t: 'hello', templateId, players });
   }, [mode, remote.status, templateId, players]);
 
+  // Keep the friend's preview on the same filter, so both halves of the shared frame match.
+  useEffect(() => {
+    if (mode === 'remote' && remote.status === 'connected') send({ t: 'look', filter: settings.filter });
+  }, [mode, remote.status, settings.filter]);
+
   useEffect(() => {
     if (faceState === 'slow') {
       patchSettings({ effect: 'none' });
@@ -71,8 +77,11 @@ export function Booth() {
     }
   }, [faceState, patchSettings]);
 
-  const playerFor = (i: number) => (mode === 'solo' ? 0 : i % players.length);
-  const nameFor = (i: number) => players[playerFor(i)] || `Player ${playerFor(i) + 1}`;
+  // In "Friend, far away" both people are in every photo, so there are no turns.
+  const playerFor = (i: number) => (mode === 'solo' || mode === 'remote' ? 0 : i % players.length);
+  const myName = players[0] && players[0] !== 'PLAYER 1' ? players[0] : 'You';
+  const friendName = players[1] && players[1] !== 'PLAYER 2' ? players[1] : 'Friend';
+  const nameFor = (i: number) => (mode === 'remote' ? `${myName} & ${friendName}` : players[playerFor(i)] || `Player ${playerFor(i) + 1}`);
 
   const countdown = async (secs: number, banner?: string) => {
     setCd({ total: secs, startedAt: performance.now(), banner });
@@ -90,16 +99,13 @@ export function Booth() {
 
   const shootOne = async (i: number, first: boolean) => {
     const player = playerFor(i);
-    const banner = mode === 'solo' ? `Photo ${i + 1} of ${n}` : `${nameFor(i)} · photo ${i + 1}`;
+    const banner =
+      mode === 'solo' ? `Photo ${i + 1} of ${n}` : mode === 'remote' ? `Together · photo ${i + 1} of ${n}` : `${nameFor(i)} · photo ${i + 1}`;
     const secs = settings.burst && !first ? 1 : settings.countdown;
     setCurrent(i);
-    if (mode === 'remote' && player === 1) {
-      const [blob] = await Promise.all([requestGuestShot(i, secs), countdown(secs, `${banner} (their camera)`)]);
-      if (cancel.current) return;
-      if (settings.sound) sfx.shutter();
-      setShot(i, await makeShot(uid(), blob, undefined, DEFAULT_LOOK, player));
-      return;
-    }
+    // Remote: the friend counts down with us and captures at the same moment; we merge both frames.
+    const guestShot = mode === 'remote' ? requestGuestShot(i, secs) : null;
+    guestShot?.catch(() => undefined); // handled below; avoids an unhandled rejection if we stop early
     await countdown(secs, banner);
     if (cancel.current || !cam.current) return;
     let shot: { raw: Blob; fx?: Blob };
@@ -114,6 +120,11 @@ export function Booth() {
     } else {
       fire();
       shot = await cam.current.capture();
+    }
+    if (guestShot) {
+      const theirs = await guestShot;
+      if (cancel.current) return;
+      shot = await composeDuo(shot, theirs, aspect);
     }
     const { raw, fx } = shot;
     setShot(i, await makeShot(uid(), raw, fx, { ...DEFAULT_LOOK, filter: settings.filter }, player));
@@ -226,20 +237,26 @@ export function Booth() {
               aspect={aspect}
               filter={settings.filter}
               effect={settings.effect}
-              mirror={settings.mirror}
+              mirror={mode === 'remote' || settings.mirror}
               facing={settings.facing}
               onCamState={setCamState}
               onFaceState={setFaceState}
               onStream={(s) => mode === 'remote' && ensureCall(s)}
               onUpload={() => fileRef.current?.click()}
+              duo={mode === 'remote' ? 'left' : undefined}
             >
+              {mode === 'remote' && (
+                <>
+                  <RemoteVideo side="right" label={friendName} filter={settings.filter} />
+                  <span className="duo-tag duo-tag-left">{myName}</span>
+                </>
+              )}
               {settings.light && <div className={`ring-light ${running ? 'ring-strong' : ''}`} aria-hidden />}
               {lit && <div className="screen-flash" aria-hidden />}
               <CountdownBar state={cd} sound={settings.sound} />
               {flash && <div className="flash" />}
               {live && !running && <div className="cam-tag">● Live · {filled} of {n} taken</div>}
               {faceState === 'loading' && <div className="cam-tag cam-tag-r blink">Loading face tracker…</div>}
-              {mode === 'remote' && <RemoteVideo />}
             </CameraView>
           ) : (
             <div className="cam-ready" style={{ aspectRatio: String(Math.max(aspect, 1.2)) }}>
@@ -365,9 +382,11 @@ export function Booth() {
                 <Toggle on={settings.sound} onChange={(v) => patchSettings({ sound: v })}>
                   Shutter sound
                 </Toggle>
-                <Toggle on={settings.mirror} onChange={(v) => patchSettings({ mirror: v })}>
-                  Mirror my camera
-                </Toggle>
+                {mode !== 'remote' && (
+                  <Toggle on={settings.mirror} onChange={(v) => patchSettings({ mirror: v })}>
+                    Mirror my camera
+                  </Toggle>
+                )}
                 <Toggle on={settings.burst} onChange={(v) => patchSettings({ burst: v })}>
                   Quick mode (1s between photos)
                 </Toggle>

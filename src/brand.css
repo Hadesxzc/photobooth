@@ -108,8 +108,6 @@ input[type='range'] { accent-color: var(--lime); }
 .cd-bar span { background: var(--blush); border-radius: 3px; }
 .cd-bar .cd-on { background: var(--lime); }
 .cd-label { background: #fff; color: var(--cream); border: 2px solid var(--cream); border-radius: 6px; font-family: var(--mono); }
-.pip { border: 2px solid var(--cream); border-radius: 10px; }
-.pip span { background: var(--butter); color: var(--cream); }
 .tray2-img { border: 2px dashed var(--cream); border-radius: 10px; background: #fff; }
 .tray2-img span { color: var(--muted); }
 .tray2-slot.full .tray2-img { border: 2px solid var(--cream); box-shadow: 3px 3px 0 var(--cream); }
