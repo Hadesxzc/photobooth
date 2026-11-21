@@ -212,7 +212,7 @@ export function Booth() {
 
   return (
     <section className="screen booth2">
-      {settings.light && camOn && running && <div className="ring-light" aria-hidden />}
+      {settings.light && camOn && <div className={`ring-light ${running ? 'ring-strong' : ''}`} aria-hidden />}
       {lit && <div className="screen-flash" aria-hidden />}
       <header className="booth-head">
         <p className="mode-step">{head.kicker}</p>

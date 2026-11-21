@@ -143,8 +143,10 @@ input[type='range'] { accent-color: var(--lime); }
 /* Screen light: the edges of the screen glow while shooting, and the whole screen flashes at capture */
 .ring-light {
   position: fixed; inset: 0; z-index: 90; pointer-events: none;
-  box-shadow: inset 0 0 0 9vmin #fffaf2, inset 0 0 12vmin 12vmin rgba(255, 250, 242, 0.85);
+  box-shadow: inset 0 0 0 3.5vmin #fffaf2, inset 0 0 8vmin 6vmin rgba(255, 250, 242, 0.8);
+  transition: box-shadow 0.25s;
 }
+.ring-light.ring-strong { box-shadow: inset 0 0 0 9vmin #fffaf2, inset 0 0 12vmin 12vmin rgba(255, 250, 242, 0.85); }
 .screen-flash { position: fixed; inset: 0; z-index: 100; pointer-events: none; background: #fffaf2; }
 .light-toggle {
   align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;

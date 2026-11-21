@@ -118,7 +118,7 @@ export function Guest({ hostId }: { hostId: string }) {
 
   return (
     <section className="screen booth">
-      {settings.light && cd && <div className="ring-light" aria-hidden />}
+      {settings.light && <div className={`ring-light ${cd ? 'ring-strong' : ''}`} aria-hidden />}
       {lit && <div className="screen-flash" aria-hidden />}
       <div className="booth-stage">
         <CameraView
