@@ -135,3 +135,7 @@ input[type='range'] { accent-color: var(--lime); }
 .title { font-family: var(--head); font-style: normal; color: var(--lime); }
 .kicker { font-family: var(--mono); color: var(--lime); }
 .sky-star, .start-sky { display: none; }
+
+/* creator credit next to the wordmark */
+.by { font-family: 'Courier Prime', 'Courier New', monospace; font-size: 13px; font-weight: 700; color: #6e5258; margin-left: 8px; letter-spacing: 0.02em; vertical-align: 0.35em; white-space: nowrap; }
+.lp-logo, .logo { display: inline-flex; align-items: baseline; }

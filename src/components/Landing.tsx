@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { APP_NAME } from '../config';
+import { APP_NAME, CREATOR } from '../config';
 import { COLLECTIONS, TEMPLATES, getTemplate } from '../lib/templates';
 import { FILTERS } from '../lib/filters';
 import { EFFECTS } from '../lib/effects';
@@ -109,6 +109,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
       <header className="lp-nav">
         <a className="lp-logo" href={location.pathname}>
           {BRAND}
+          <small className="by">by {CREATOR}</small>
         </a>
         <nav className="lp-links" aria-label="Sections">
           <a href="#how">How it works</a>
@@ -290,6 +291,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
         <div className="lp-footer-brand">
           <a className="lp-logo" href={location.pathname}>
             {BRAND}
+            <small className="by">by {CREATOR}</small>
           </a>
           <p>A free photobooth that lives in your browser.</p>
         </div>

@@ -1,6 +1,7 @@
 export const APP_NAME = 'Oh, Snap!';
 /** File-safe version of the name, for downloads and storage keys. */
 export const APP_SLUG = 'oh-snap';
+export const CREATOR = 'Jomer';
 export const APP_TAGLINE = 'An arcade photobooth in your browser';
 
 export const RETRO = {

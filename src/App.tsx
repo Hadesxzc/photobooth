@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { APP_NAME } from './config';
+import { APP_NAME, CREATOR } from './config';
 import { STEPS, useStore } from './store';
 import { Start } from './screens/Start';
 import { Templates } from './screens/Templates';
@@ -40,7 +40,10 @@ export default function App() {
       <div className="app">
         <header className="topbar">
           <div className="topbar-row">
-            <span className="logo">{BRAND}</span>
+            <span className="logo">
+              {BRAND}
+              <small className="by">by {CREATOR}</small>
+            </span>
           </div>
         </header>
         <Guest hostId={joinId} />
@@ -70,6 +73,7 @@ export default function App() {
         <div className="topbar-row">
           <button className="logo logo-btn" onClick={() => leave('')} aria-label={`${BRAND} home`}>
             {BRAND}
+            <small className="by">by {CREATOR}</small>
           </button>
           <nav className="topnav" aria-label="Site">
             {NAV.map((n) => (
