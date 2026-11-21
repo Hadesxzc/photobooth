@@ -118,8 +118,6 @@ export function Guest({ hostId }: { hostId: string }) {
 
   return (
     <section className="screen booth">
-      {settings.light && <div className={`ring-light ${cd ? 'ring-strong' : ''}`} aria-hidden />}
-      {lit && <div className="screen-flash" aria-hidden />}
       <div className="booth-stage">
         <CameraView
           ref={cam}
@@ -130,6 +128,8 @@ export function Guest({ hostId }: { hostId: string }) {
           facing={settings.facing}
           onCamState={setCamState}
         >
+          {settings.light && <div className={`ring-light ${cd ? 'ring-strong' : ''}`} aria-hidden />}
+          {lit && <div className="screen-flash" aria-hidden />}
           <CountdownBar state={cd} sound={settings.sound} />
           {flash && <div className="flash" />}
           <RemoteVideo label="P1" />

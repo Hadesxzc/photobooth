@@ -212,8 +212,6 @@ export function Booth() {
 
   return (
     <section className="screen booth2">
-      {settings.light && camOn && <div className={`ring-light ${running ? 'ring-strong' : ''}`} aria-hidden />}
-      {lit && <div className="screen-flash" aria-hidden />}
       <header className="booth-head">
         <p className="mode-step">{head.kicker}</p>
         <h2 className="peek-h">{head.title}</h2>
@@ -235,6 +233,8 @@ export function Booth() {
               onStream={(s) => mode === 'remote' && ensureCall(s)}
               onUpload={() => fileRef.current?.click()}
             >
+              {settings.light && <div className={`ring-light ${running ? 'ring-strong' : ''}`} aria-hidden />}
+              {lit && <div className="screen-flash" aria-hidden />}
               <CountdownBar state={cd} sound={settings.sound} />
               {flash && <div className="flash" />}
               {live && !running && <div className="cam-tag">● Live · {filled} of {n} taken</div>}
