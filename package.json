@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b",
-    "postinstall": "node -e \"require('fs').cpSync('node_modules/@mediapipe/tasks-vision/wasm','public/mediapipe',{recursive:true})\""
+    "postinstall": "node -e \"require('fs').cpSync('node_modules/@mediapipe/tasks-vision/wasm','public/mediapipe',{recursive:true})\"",
+    "og": "node -e \"require('child_process').execFileSync(process.env.CHROME||'chrome',['--headless=new','--hide-scrollbars','--force-device-scale-factor=1','--window-size=1200,630','--virtual-time-budget=8000','--screenshot=public/og.png','http://localhost:5173/og.html'],{stdio:'inherit'})\""
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "0.10.14",
@@ -19,6 +20,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@types/node": "^20.19.43",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",

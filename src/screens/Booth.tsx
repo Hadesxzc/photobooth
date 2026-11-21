@@ -35,6 +35,7 @@ export function Booth() {
   const [faceState, setFaceState] = useState<FaceState>('off');
   const [cd, setCd] = useState<CountdownState | null>(null);
   const [flash, setFlash] = useState(false);
+  const [lit, setLit] = useState(false);
   const [running, setRunning] = useState(false);
   const [current, setCurrent] = useState<number | null>(null);
   const [note, setNote] = useState('');
@@ -101,8 +102,20 @@ export function Booth() {
     }
     await countdown(secs, banner);
     if (cancel.current || !cam.current) return;
-    fire();
-    const { raw, fx } = await cam.current.capture();
+    let shot: { raw: Blob; fx?: Blob };
+    if (settings.light) {
+      // Light the face first, give the camera a moment to adjust exposure, then capture.
+      setLit(true);
+      await sleep(260);
+      if (settings.sound) sfx.shutter();
+      shot = await cam.current.capture();
+      await sleep(80);
+      setLit(false);
+    } else {
+      fire();
+      shot = await cam.current.capture();
+    }
+    const { raw, fx } = shot;
     setShot(i, await makeShot(uid(), raw, fx, { ...DEFAULT_LOOK, filter: settings.filter }, player));
   };
 
@@ -199,6 +212,8 @@ export function Booth() {
 
   return (
     <section className="screen booth2">
+      {settings.light && camOn && running && <div className="ring-light" aria-hidden />}
+      {lit && <div className="screen-flash" aria-hidden />}
       <header className="booth-head">
         <p className="mode-step">{head.kicker}</p>
         <h2 className="peek-h">{head.title}</h2>
@@ -260,6 +275,18 @@ export function Booth() {
               </figure>
             ))}
           </div>
+
+          {camOn && (
+            <button
+              className={`light-toggle ${settings.light ? 'on' : ''}`}
+              onClick={() => patchSettings({ light: !settings.light })}
+              aria-pressed={settings.light}
+              title="Turns your screen into a soft light while you shoot"
+            >
+              <span className="light-bulb" aria-hidden>☀</span>
+              Screen light: {settings.light ? 'on' : 'off'}
+            </button>
+          )}
 
           <div className="row wrap booth-actions">
             {camOn &&
@@ -329,8 +356,11 @@ export function Booth() {
 
               <Label>Options</Label>
               <div className="toggles col">
+                <Toggle on={settings.light} onChange={(v) => patchSettings({ light: v })}>
+                  Screen light (brightens your face)
+                </Toggle>
                 <Toggle on={settings.flash} onChange={(v) => patchSettings({ flash: v })}>
-                  White flash on each photo
+                  Flash effect on each photo
                 </Toggle>
                 <Toggle on={settings.sound} onChange={(v) => patchSettings({ sound: v })}>
                   Shutter sound

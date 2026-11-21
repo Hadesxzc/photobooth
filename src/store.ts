@@ -19,6 +19,7 @@ function loadSettings(): CaptureSettings {
   const base: CaptureSettings = {
     countdown: 3,
     flash: true,
+    light: false,
     sound: true,
     mirror: true,
     burst: false,

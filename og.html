@@ -1,0 +1,60 @@
+<!doctype html>
+<!-- Source for public/og.png (the link-preview image). Not part of the site build.
+     Regenerate: run `npm run dev`, then `npm run og`. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@700&family=Familjen+Grotesk:wght@500;700&family=Fredoka:wght@700&family=Shrikhand&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #fff4e8; }
+      .card { position: relative; width: 1200px; height: 630px; box-sizing: border-box; padding: 64px 0 0 72px; font-family: 'Familjen Grotesk', sans-serif; color: #2b1a1f; }
+      .logo { font-family: 'Shrikhand', serif; font-size: 84px; color: #d7263d; line-height: 1; }
+      .by { display: block; font-family: 'Courier Prime', monospace; font-weight: 700; font-size: 24px; color: #6e5258; margin: 8px 0 0 4px; }
+      h1 { font-family: 'Shrikhand', serif; font-weight: 400; font-size: 54px; line-height: 1.05; margin: 30px 0 0; max-width: 520px; }
+      h1 em { font-style: normal; color: #d7263d; }
+      p { font-size: 26px; margin: 24px 0 0; max-width: 500px; line-height: 1.35; }
+      .tag { position: absolute; left: 72px; bottom: 56px; display: inline-block; font-family: 'Courier Prime', monospace; font-weight: 700; font-size: 22px; text-transform: uppercase;
+        background: #ffe08a; border: 3px solid #2b1a1f; border-radius: 10px; padding: 8px 16px; box-shadow: 4px 4px 0 #2b1a1f; }
+      .panel { position: absolute; right: 48px; top: 40px; width: 520px; height: 550px; border: 3px solid #2b1a1f; border-radius: 26px; background: #ffd3df;
+        background-image: radial-gradient(#ff8fb1 2px, transparent 2.3px); background-size: 22px 22px; box-shadow: 8px 8px 0 #2b1a1f; overflow: hidden; }
+      .panel canvas { position: absolute; width: 150px; border: 3px solid #2b1a1f; box-shadow: 5px 5px 0 #2b1a1f; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div><span class="logo">Oh, Snap!</span><span class="by">by Jomer</span></div>
+      <h1>Strike a pose. <em>Keep the strip.</em></h1>
+      <p>A free photobooth in your browser. No sign-up, and your photos stay on your device.</p>
+      <span class="tag">40 strip templates · face effects</span>
+      <div class="panel" id="panel"></div>
+    </div>
+    <script type="module">
+      import { composeStrip } from '/src/lib/compose.ts';
+      import { getTemplate } from '/src/lib/templates.ts';
+      import { sampleSet } from '/src/lib/samples.ts';
+      await document.fonts.ready;
+      await Promise.all(['400 40px Shrikhand', '700 40px Fredoka'].map((f) => document.fonts.load(f)));
+      const strips = [
+        { id: 'coquette-strip', seed: 21, filter: 13, fx: ['bow', 'hearteyes', 'blush', 'none'], people: [1, 2], left: 28, top: 70, rot: -7, title: 'xoxo' },
+        { id: 'dream-strip', seed: 820, filter: 18, fx: ['none', 'blush', 'hearteyes', 'none'], people: [2, 1], left: 186, top: 34, rot: 2 },
+        { id: 'kawaii-strip', seed: 700, filter: 16, fx: ['blush', 'none', 'bow', 'none'], people: [1, 2], left: 344, top: 82, rot: 6 },
+      ];
+      const panel = document.getElementById('panel');
+      for (const s of strips) {
+        const t = getTemplate(s.id);
+        const cust = { ...t.defaults, colors: { ...t.defaults.colors }, subtitle: '', showDate: true, showScore: false, stickers: [], sprinkles: [] };
+        if (s.title) cust.title = s.title;
+        const c = document.createElement('canvas');
+        composeStrip(c, { template: t, cust, images: sampleSet(s.seed, 4, s.fx, s.filter, s.people), scale: 0.5, score: '' });
+        c.style.left = s.left + 'px';
+        c.style.top = s.top + 'px';
+        c.style.transform = `rotate(${s.rot}deg)`;
+        panel.appendChild(c);
+      }
+      document.body.dataset.ready = '1';
+    </script>
+  </body>
+</html>

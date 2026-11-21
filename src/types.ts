@@ -107,6 +107,8 @@ export interface Template {
 export interface CaptureSettings {
   countdown: 3 | 5 | 10;
   flash: boolean;
+  /** Screen light: the screen glows white while shooting and flashes at the moment of capture to light the face. */
+  light: boolean;
   sound: boolean;
   mirror: boolean;
   burst: boolean;

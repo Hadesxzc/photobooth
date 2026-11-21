@@ -21,6 +21,7 @@ export function Guest({ hostId }: { hostId: string }) {
   const [templateId, setTemplateId] = useState('night-strip');
   const [cd, setCd] = useState<CountdownState | null>(null);
   const [flash, setFlash] = useState(false);
+  const [lit, setLit] = useState(false);
   const [count, setCount] = useState(0);
   const [strip, setStrip] = useState<{ url: string; name: string } | null>(null);
   const cam = useRef<CameraHandle>(null);
@@ -39,12 +40,23 @@ export function Guest({ hostId }: { hostId: string }) {
         await new Promise((r) => setTimeout(r, m.countdown * 1000));
         setCd(null);
         if (!cam.current) return;
-        if (settingsRef.current.flash) {
-          setFlash(true);
-          setTimeout(() => setFlash(false), 180);
+        let shot: { raw: Blob; fx?: Blob };
+        if (settingsRef.current.light) {
+          setLit(true);
+          await new Promise((r) => setTimeout(r, 260));
+          if (settingsRef.current.sound) sfx.shutter();
+          shot = await cam.current.capture();
+          await new Promise((r) => setTimeout(r, 80));
+          setLit(false);
+        } else {
+          if (settingsRef.current.flash) {
+            setFlash(true);
+            setTimeout(() => setFlash(false), 180);
+          }
+          if (settingsRef.current.sound) sfx.shutter();
+          shot = await cam.current.capture();
         }
-        if (settingsRef.current.sound) sfx.shutter();
-        const { raw, fx } = await cam.current.capture();
+        const { raw, fx } = shot;
         const rawUrl = URL.createObjectURL(raw);
         const fxUrl = fx ? URL.createObjectURL(fx) : undefined;
         const done = await renderLook(rawUrl, fxUrl, { ...DEFAULT_LOOK, filter: settingsRef.current.filter });
@@ -106,6 +118,8 @@ export function Guest({ hostId }: { hostId: string }) {
 
   return (
     <section className="screen booth">
+      {settings.light && cd && <div className="ring-light" aria-hidden />}
+      {lit && <div className="screen-flash" aria-hidden />}
       <div className="booth-stage">
         <CameraView
           ref={cam}
@@ -156,6 +170,9 @@ export function Guest({ hostId }: { hostId: string }) {
           ))}
         </div>
         <div className="toggles">
+          <Toggle on={settings.light} onChange={(v) => patchSettings({ light: v })}>
+            Screen light
+          </Toggle>
           <Toggle on={settings.mirror} onChange={(v) => patchSettings({ mirror: v })}>
             Mirror
           </Toggle>
