@@ -5,9 +5,10 @@ import { STICKERS } from '../lib/sprites';
 import { FONTS } from '../config';
 import { StripPreview, useSlotImages } from '../components/StripPreview';
 import { Button, Chip, Label, PixelIcon, Segmented, Toggle } from '../components/ui';
-import type { BorderId, Palette, PatternId } from '../types';
+import type { BorderId, Palette, PatternId, SprinkleId } from '../types';
 
 type Tab = 'colors' | 'text' | 'stickers' | 'layout';
+const TAB_LABEL: Record<Tab, string> = { colors: 'Colors', text: 'Text', stickers: 'Sprinkles & stickers', layout: 'Frames & layout' };
 
 const EXTRA_PALETTES: { name: string; p: Palette }[] = [
   { name: 'Paper', p: { bg: '#DED5BC', ink: '#171312', accent: '#171312', shadow: '#DFAF37', window: '#171312' } },
@@ -25,7 +26,29 @@ const COLOR_FIELDS: { key: keyof Palette; label: string }[] = [
 ];
 
 const PATTERNS: PatternId[] = ['none', 'stars', 'dots', 'checker', 'grid', 'stripes', 'snow', 'hearts'];
-const BORDERS: BorderId[] = ['none', 'solid', 'double', 'dashed', 'pixel'];
+const BORDERS: { id: BorderId; label: string }[] = [
+  { id: 'lace', label: 'Lace edge' },
+  { id: 'washi', label: 'Washi tape' },
+  { id: 'pearl', label: 'Pearls' },
+  { id: 'white', label: 'White mat' },
+  { id: 'rounded', label: 'Rounded' },
+  { id: 'solid', label: 'Solid line' },
+  { id: 'double', label: 'Double line' },
+  { id: 'dashed', label: 'Dashed' },
+  { id: 'pixel', label: 'Pixel' },
+  { id: 'none', label: 'None' },
+];
+
+const SPRINKLES: { id: SprinkleId; label: string; icon: string }[] = [
+  { id: 'strawberries', label: 'Strawberries', icon: '🍓' },
+  { id: 'hearts', label: 'Hearts', icon: '♡' },
+  { id: 'bows', label: 'Bows', icon: '🎀' },
+  { id: 'pearls', label: 'Pearls', icon: '◦' },
+  { id: 'cherries', label: 'Cherries', icon: '🍒' },
+  { id: 'sparkles', label: 'Sparkles', icon: '✦' },
+  { id: 'flowers', label: 'Flowers', icon: '✿' },
+  { id: 'stars', label: 'Stars', icon: '★' },
+];
 
 export function Customize() {
   const { templateId, cust, patchCust, setSlotCount, addSticker, updateSticker, removeSticker, go } = useStore();
@@ -71,18 +94,18 @@ export function Customize() {
       </div>
 
       <aside className="split-side">
-        <h2>STYLE IT</h2>
+        <h2>Make it cute</h2>
         <div className="row wrap tabs" role="tablist">
           {(['colors', 'text', 'stickers', 'layout'] as Tab[]).map((t) => (
             <Chip key={t} active={tab === t} onClick={() => setTab(t)} role="tab">
-              {t.toUpperCase()}
+              {TAB_LABEL[t]}
             </Chip>
           ))}
         </div>
 
         {tab === 'colors' && (
           <>
-            <Label>THEMES</Label>
+            <Label>Themes</Label>
             <div className="swatches">
               {palettes.map(({ name, p }) => (
                 <button key={name} className="swatch" onClick={() => patchCust({ colors: { ...p } })} title={name}>
@@ -94,7 +117,7 @@ export function Customize() {
                 </button>
               ))}
             </div>
-            <Label>FINE TUNE</Label>
+            <Label>Fine tune</Label>
             <div className="color-fields">
               {COLOR_FIELDS.map((f) => (
                 <label key={f.key} className="color-field">
@@ -113,19 +136,19 @@ export function Customize() {
         {tab === 'text' && (
           <>
             <label className="field col">
-              <span>TITLE</span>
+              <span>Title</span>
               <input ref={titleRef} value={cust.title} maxLength={24} onChange={(e) => patchCust({ title: e.target.value })} />
             </label>
             <label className="field col">
-              <span>NAMES / CAPTION</span>
+              <span>Names or caption</span>
               <input
                 value={cust.subtitle}
                 maxLength={40}
-                placeholder="e.g. ALEX & SAM"
+                placeholder="e.g. ava & lily"
                 onChange={(e) => patchCust({ subtitle: e.target.value })}
               />
             </label>
-            <Label>TITLE FONT</Label>
+            <Label>Title font</Label>
             <div className="row wrap">
               {FONTS.map((f) => (
                 <Chip key={f} active={cust.font === f} onClick={() => patchCust({ font: f })}>
@@ -146,6 +169,23 @@ export function Customize() {
 
         {tab === 'stickers' && (
           <>
+            <Label>Sprinkles on every photo</Label>
+            <div className="row wrap">
+              {SPRINKLES.map((sp) => {
+                const on = cust.sprinkles.includes(sp.id);
+                return (
+                  <Chip
+                    key={sp.id}
+                    active={on}
+                    onClick={() => patchCust({ sprinkles: on ? cust.sprinkles.filter((x) => x !== sp.id) : [...cust.sprinkles, sp.id] })}
+                  >
+                    <span aria-hidden>{sp.icon}</span> {sp.label}
+                  </Chip>
+                );
+              })}
+            </div>
+            <p className="muted small">Pick as many as you like. They're scattered around the edges so faces stay clear.</p>
+            <Label>Stickers</Label>
             <div className="sticker-grid">
               {STICKERS.map((s) => (
                 <button key={s.id} className="sticker-btn" onClick={() => add(s.id)} title={`Add ${s.label}`}>
@@ -155,9 +195,9 @@ export function Customize() {
             </div>
             {selected ? (
               <div className="panel">
-                <Label>SELECTED STICKER</Label>
+                <Label>Selected sticker</Label>
                 <label className="field col">
-                  <span>SIZE</span>
+                  <span>Size</span>
                   <input
                     type="range"
                     min={0.4}
@@ -168,7 +208,7 @@ export function Customize() {
                   />
                 </label>
                 <label className="field col">
-                  <span>ROTATE</span>
+                  <span>Rotate</span>
                   <input
                     type="range"
                     min={-45}
@@ -185,7 +225,7 @@ export function Customize() {
                     setSel(null);
                   }}
                 >
-                  REMOVE
+                  Remove
                 </Button>
               </div>
             ) : (
@@ -198,7 +238,7 @@ export function Customize() {
                   setSel(null);
                 }}
               >
-                CLEAR ALL STICKERS
+                Clear all stickers
               </Button>
             )}
           </>
@@ -206,37 +246,37 @@ export function Customize() {
 
         {tab === 'layout' && (
           <>
-            <Label>PHOTO SLOTS</Label>
+            <Label>Photo slots</Label>
             <Segmented
               label="Photo slots"
               value={cust.slotCount}
               options={layout.slots.map((v) => ({ value: v, label: String(v) }))}
               onChange={setSlotCount}
             />
-            <Label>BACKGROUND PATTERN</Label>
+            <Label>Background pattern</Label>
             <div className="row wrap">
               {PATTERNS.map((p) => (
                 <Chip key={p} active={cust.pattern === p} onClick={() => patchCust({ pattern: p })}>
-                  {p.toUpperCase()}
+                  {p[0].toUpperCase() + p.slice(1)}
                 </Chip>
               ))}
             </div>
-            <Label>BORDER</Label>
+            <Label>Photo frame</Label>
             <div className="row wrap">
               {BORDERS.map((b) => (
-                <Chip key={b} active={cust.border === b} onClick={() => patchCust({ border: b })}>
-                  {b.toUpperCase()}
+                <Chip key={b.id} active={cust.border === b.id} onClick={() => patchCust({ border: b.id })}>
+                  {b.label}
                 </Chip>
               ))}
             </div>
-            <Button onClick={() => go('template')}>CHANGE TEMPLATE</Button>
+            <Button onClick={() => go('template')}>Change template</Button>
           </>
         )}
 
         <div className="row wrap push">
-          <Button onClick={() => go('arrange')}>◀ ARRANGE</Button>
+          <Button onClick={() => go('glow')}>Back</Button>
           <Button variant="primary" big onClick={() => go('export')}>
-            NEXT: SAVE ▶
+            Next: save
           </Button>
         </div>
       </aside>

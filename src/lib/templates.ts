@@ -13,6 +13,26 @@ export interface Collection {
 
 export const COLLECTIONS: Collection[] = [
   {
+    id: 'coquette',
+    name: 'Ribbon Club',
+    blurb: 'Bows, pearls and blush pink',
+    palette: { bg: '#fbe4e8', ink: '#9c3d55', accent: '#f4b6c2', shadow: '#ffffff', window: '#f7d3da' },
+    font: 'Pinyon Script',
+    pattern: 'gingham',
+    border: 'lace',
+    titles: ['xoxo', 'sweet as pie', 'pretty please', 'besties forever', 'lovers club'],
+  },
+  {
+    id: 'kawaii',
+    name: 'Strawberry Milk',
+    blurb: 'Mochi the bunny, polka dots and berries',
+    palette: { bg: '#fff1f4', ink: '#e0556f', accent: '#ffb3c4', shadow: '#ffd9e1', window: '#ffe4ea' },
+    font: 'Fredoka',
+    pattern: 'dots',
+    border: 'rounded',
+    titles: ['strawberry milk', 'hi bestie!', 'mochi & me', 'sweet treat', 'bun bun club'],
+  },
+  {
     id: 'night',
     name: 'Night Arcade',
     blurb: 'Lime, gold and cream on dark',

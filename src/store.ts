@@ -1,12 +1,14 @@
 import { create } from 'zustand';
-import type { CaptureSettings, Customization, Mode, Shot, Step, Sticker } from './types';
+import type { CaptureSettings, Customization, Look, Mode, Shot, Step, Sticker } from './types';
 import { getTemplate } from './lib/templates';
+import { processShot, revokeShot } from './lib/process';
 
 export const STEPS: { id: Step; label: string }[] = [
   { id: 'start', label: 'Start' },
   { id: 'template', label: 'Template' },
   { id: 'booth', label: 'Shoot' },
-  { id: 'arrange', label: 'Arrange' },
+  { id: 'peek', label: 'Peek' },
+  { id: 'glow', label: 'Glow' },
   { id: 'customize', label: 'Style' },
   { id: 'export', label: 'Save' },
 ];
@@ -38,8 +40,9 @@ function custFor(templateId: string, prev?: Customization): Customization {
     colors: { ...t.defaults.colors },
     subtitle: prev?.subtitle ?? '',
     showDate: prev?.showDate ?? true,
-    showScore: prev?.showScore ?? true,
+    showScore: prev?.showScore ?? t.collection !== 'coquette',
     stickers: [],
+    sprinkles: t.collection === 'coquette' ? ['hearts'] : t.collection === 'kawaii' ? ['strawberries', 'hearts'] : [],
   };
 }
 
@@ -56,6 +59,13 @@ interface State {
   slotMap: (number | null)[];
   settings: CaptureSettings;
   score: string;
+  /** Shot index the booth should retake as soon as the camera is live, then return to Peek. */
+  pendingRetake: number | null;
+  /** The user has turned the camera on this session. */
+  camOn: boolean;
+  setCamOn(v: boolean): void;
+  setPendingRetake(i: number | null): void;
+  setLooks(indices: number[], look: Partial<Look>): Promise<void>;
   go(step: Step): void;
   setMode(mode: Mode, players?: string[]): void;
   setPlayers(players: string[]): void;
@@ -73,7 +83,7 @@ interface State {
   reset(): void;
 }
 
-const DEFAULT_TEMPLATE = 'night-strip';
+const DEFAULT_TEMPLATE = 'coquette-strip';
 
 export const useStore = create<State>((set, get) => ({
   step: 'start',
@@ -86,6 +96,41 @@ export const useStore = create<State>((set, get) => ({
   slotMap: [0, 1, 2, 3],
   settings: loadSettings(),
   score: randomScore(),
+  pendingRetake: null,
+  camOn: false,
+  setCamOn(v) {
+    set({ camOn: v });
+  },
+  setPendingRetake(i) {
+    set({ pendingRetake: i });
+  },
+  async setLooks(indices, patch) {
+    // Record the new look right away so later edits build on it, then render in the background.
+    const shots = [...get().shots];
+    const jobs: { i: number; id: string; look: Look; raw: string; fx?: string }[] = [];
+    for (const i of indices) {
+      const cur = shots[i];
+      if (!cur) continue;
+      const look = { ...cur.look, ...patch };
+      shots[i] = { ...cur, look };
+      jobs.push({ i, id: cur.id, look, raw: cur.raw, fx: cur.fx });
+    }
+    set({ shots });
+    await Promise.all(
+      jobs.map(async (j) => {
+        const url = await processShot(j.raw, j.fx, j.look);
+        const cur = get().shots[j.i];
+        if (!cur || cur.id !== j.id || cur.look !== j.look) {
+          URL.revokeObjectURL(url); // a newer edit is on its way
+          return;
+        }
+        const next = [...get().shots];
+        URL.revokeObjectURL(cur.url);
+        next[j.i] = { ...cur, url };
+        set({ shots: next });
+      })
+    );
+  },
 
   go(step) {
     const i = STEPS.findIndex((s) => s.id === step);
@@ -131,12 +176,12 @@ export const useStore = create<State>((set, get) => ({
   setShot(index, shot) {
     const shots = [...get().shots];
     const old = shots[index];
-    if (old && old.url !== shot.url) URL.revokeObjectURL(old.url);
+    if (old && old.id !== shot.id) revokeShot(old);
     shots[index] = shot;
     set({ shots, slotMap: identity(get().cust.slotCount, shots.length, get().slotMap) });
   },
   clearShots() {
-    get().shots.forEach((s) => s && URL.revokeObjectURL(s.url));
+    get().shots.forEach((s) => s && revokeShot(s));
     set({ shots: [], slotMap: identity(get().cust.slotCount, 0), score: randomScore() });
   },
   assignSlot(slot, shot) {
@@ -160,7 +205,7 @@ export const useStore = create<State>((set, get) => ({
   },
   reset() {
     get().clearShots();
-    set({ step: 'start', furthest: 0, cust: custFor(get().templateId) });
+    set({ step: 'start', furthest: 0, cust: custFor(get().templateId), camOn: false });
   },
 }));
 

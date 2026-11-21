@@ -1,6 +1,11 @@
 import type { Customization, Geometry, Rect, Sticker, Template } from '../types';
 import { drawSprite, spriteSize, STICKERS } from './sprites';
 import { layoutGeometry } from './templates';
+import { drawBow, drawBunny, drawCherry, drawFlower, drawHeart, drawLace, drawPearl, drawPearlRow, drawSparkle, drawStar, drawStrawberry } from './bow';
+import type { SprinkleId } from '../types';
+
+const ELEGANT = ['Pinyon Script', 'Playfair Display'];
+const ROUNDED = ['Fredoka'];
 
 export interface ComposeOpts {
   template: Template;
@@ -72,32 +77,82 @@ function drawSlot(
     ctx.fillRect(x - m + 12, y - m + 12, r.w + m * 2, r.h + m + 90);
     ctx.fillStyle = '#f7f3e8';
     ctx.fillRect(x - m, y - m, r.w + m * 2, r.h + m + 90);
-  } else if (c.shadow.toLowerCase() !== c.bg.toLowerCase()) {
+  }
+  const b = o.cust.border;
+  const mat = !polaroid && (b === 'white' || b === 'lace' || b === 'pearl') ? 14 : 0;
+  const radius = b === 'rounded' ? Math.min(r.w, r.h) * 0.08 : 0;
+  if (!polaroid && c.shadow.toLowerCase() !== c.bg.toLowerCase()) {
     ctx.fillStyle = c.shadow;
-    ctx.fillRect(x + 10, y + 10, r.w, r.h);
+    ctx.beginPath();
+    ctx.roundRect(x - mat + 10, y - mat + 10, r.w + mat * 2, r.h + mat * 2, radius);
+    ctx.fill();
+  }
+  if (mat) {
+    if (b === 'lace') drawLace(ctx, x - mat, y - mat, r.w + mat * 2, r.h + mat * 2, 10);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x - mat, y - mat, r.w + mat * 2, r.h + mat * 2);
   }
 
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(x, y, r.w, r.h, radius);
+  ctx.clip();
   ctx.fillStyle = c.window;
   ctx.fillRect(x, y, r.w, r.h);
-
   if (img) {
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(x, y, r.w, r.h);
-    ctx.clip();
     drawCover(ctx, img, x, y, r.w, r.h);
-    ctx.restore();
-  } else {
-    ctx.fillStyle = withAlpha(c.accent, 0.55);
-    const s = Math.min(r.w, r.h) * 0.12;
-    drawSprite(ctx, 'plus', 0, -s * 0.4, s);
-    ctx.font = `700 ${Math.max(14, s * 0.45)}px "Space Mono"`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`SHOT ${i + 1}`, 0, s * 0.8);
+    if (o.cust.sprinkles?.length) drawSprinkles(ctx, o.cust.sprinkles, x, y, r.w, r.h, i);
+  }
+  ctx.restore();
+
+  if (b === 'pearl') {
+    const pr = 6;
+    drawPearlRow(ctx, x - mat / 2, x + r.w + mat / 2, y - mat / 2, pr);
+    drawPearlRow(ctx, x - mat / 2, x + r.w + mat / 2, y + r.h + mat / 2, pr);
+    const n = Math.max(2, Math.floor(r.h / (pr * 2.4)));
+    for (let k = 1; k < n; k++) {
+      drawPearl(ctx, x - mat / 2, y - mat / 2 + ((r.h + mat) * k) / n, pr);
+      drawPearl(ctx, x + r.w + mat / 2, y - mat / 2 + ((r.h + mat) * k) / n, pr);
+    }
+  }
+  if (b === 'washi') {
+    const tw = Math.min(110, r.w * 0.3), th = tw * 0.3;
+    for (const [tx, rot] of [[x + 6, -0.6], [x + r.w - 6, 0.6]] as const) {
+      ctx.save();
+      ctx.translate(tx, y + 4);
+      ctx.rotate(rot);
+      ctx.shadowColor = 'rgba(120, 50, 70, 0.25)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 2;
+      ctx.fillStyle = 'rgba(255, 250, 246, 0.92)';
+      ctx.fillRect(-tw / 2, -th / 2, tw, th);
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = 'rgba(232, 137, 162, 0.6)';
+      for (let d = -tw / 2 + 5; d < tw / 2 - 3; d += 13) ctx.fillRect(d, -th / 2, 5, th);
+      ctx.restore();
+    }
   }
 
-  if (!polaroid) drawBorder(ctx, x, y, r.w, r.h, o.cust.border, c.accent);
+  if (!img) {
+    const s = Math.min(r.w, r.h) * 0.12;
+    const elegant = ELEGANT.includes(o.cust.font);
+    if (elegant) drawHeart(ctx, 0, -s * 0.4, s, '#ffffff', 0.9);
+    else drawSprite(ctx, 'plus', 0, -s * 0.4, s);
+    ctx.fillStyle = elegant ? withAlpha(c.ink, 0.6) : withAlpha(c.accent, 0.55);
+    ctx.font = elegant ? `italic 500 ${Math.max(14, s * 0.5)}px "Playfair Display"` : `700 ${Math.max(14, s * 0.45)}px "Space Mono"`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(elegant ? `photo ${i + 1}` : `SHOT ${i + 1}`, 0, s * 0.8);
+  }
+
+  if (!polaroid && !mat && b !== 'washi' && b !== 'rounded') drawBorder(ctx, x, y, r.w, r.h, b, c.accent);
+  if (b === 'rounded') {
+    ctx.strokeStyle = c.accent;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.roundRect(x - 2, y - 2, r.w + 4, r.h + 4, radius + 2);
+    ctx.stroke();
+  }
 
   const label = o.labels?.[i];
   if (label) {
@@ -169,6 +224,13 @@ function drawBorder(ctx: CanvasRenderingContext2D, x: number, y: number, w: numb
 function drawPattern(ctx: CanvasRenderingContext2D, p: string, g: Geometry, ink: string, rand: () => number) {
   ctx.save();
   switch (p) {
+    case 'gingham': {
+      ctx.fillStyle = ink;
+      ctx.globalAlpha = 0.07;
+      for (let x = 0; x < g.w; x += 60) ctx.fillRect(x, 0, 30, g.h);
+      for (let y = 0; y < g.h; y += 60) ctx.fillRect(0, y, g.w, 30);
+      break;
+    }
     case 'stars':
       ctx.globalAlpha = 0.18;
       for (let y = 30; y < g.h; y += 90)
@@ -297,6 +359,100 @@ function drawDeco(ctx: CanvasRenderingContext2D, t: Template, g: Geometry, cust:
       break;
     case 'filmroll':
       break;
+    case 'kawaii': {
+      // polka dots in white over the pink pattern, berries in the margins, Mochi peeking in
+      let placed = 0, tries = 0;
+      while (placed < 10 && tries++ < 400) {
+        const x = rand() * g.w, y = rand() * g.h;
+        if (insideAny(x, y, g.slots, 16) || insideText(x, y, g)) continue;
+        if (placed % 2) drawStrawberry(ctx, x, y, 26 + rand() * 14);
+        else drawHeart(ctx, x, y, 18 + rand() * 10, '#ff8fa8', 0.7);
+        placed++;
+      }
+      const tr = g.text;
+      if (t.layout === 'wide') drawBunny(ctx, tr.x + tr.w / 2, tr.y + 70, 120);
+      else if (t.layout === 'polaroid' || t.layout === 'grid') {
+        drawBunny(ctx, tr.x + 70, tr.y + tr.h / 2, 110, -0.12);
+        drawBunny(ctx, tr.x + tr.w - 70, tr.y + tr.h / 2, 110, 0.12);
+      } else {
+        const r0 = g.slots[0];
+        drawBunny(ctx, r0.x + r0.w - 40, r0.y + 30, Math.min(140, r0.w * 0.28), 0.15);
+        drawBunny(ctx, tr.x + tr.w - 34, tr.y + 6, 68, 0.12);
+      }
+      break;
+    }
+    case 'coquette': {
+      const bowColor = '#f29bb0';
+      const small = Math.min(g.w, g.h) * 0.035;
+      scatterHearts(ctx, g, rand, c.ink, small);
+      if (t.layout === 'polaroid') {
+        g.slots.forEach((r, i) => drawBow(ctx, r.x + r.w / 2, r.y - 26, r.w * 0.32, bowColor, ((r.rot ?? 0) * Math.PI) / 180 + (i % 2 ? 0.08 : -0.08)));
+      } else {
+        const r0 = g.slots[0];
+        drawBow(ctx, r0.x + r0.w / 2, r0.y + 4, Math.min(r0.w * 0.36, 190), bowColor);
+        const last = g.slots[g.slots.length - 1];
+        if (t.layout === 'wide') drawBow(ctx, last.x + last.w - 10, last.y + last.h - 10, 90, bowColor, 0.4);
+      }
+      const tr = g.text;
+      if (tr.w > tr.h) drawPearlRow(ctx, tr.x + 20, tr.x + tr.w - 20, tr.y + 4, 7, 10);
+      else drawPearlRow(ctx, tr.x, tr.x + tr.w, tr.y + tr.h - 10, 6, 8);
+      break;
+    }
+  }
+}
+
+function scatterHearts(ctx: CanvasRenderingContext2D, g: Geometry, rand: () => number, color: string, size: number) {
+  let placed = 0, tries = 0;
+  while (placed < 12 && tries++ < 600) {
+    const x = rand() * g.w, y = rand() * g.h;
+    if (insideAny(x, y, g.slots, 20) || insideText(x, y, g)) continue;
+    drawHeart(ctx, x, y, size * (0.7 + rand() * 0.8), color, 0.35 + rand() * 0.3);
+    placed++;
+  }
+}
+
+/** Little decorations scattered around the edges of each photo, kept away from the middle where faces are. */
+function drawSprinkles(ctx: CanvasRenderingContext2D, kinds: SprinkleId[], x: number, y: number, w: number, h: number, seed: number) {
+  const rand = mulberry(seed * 977 + 13);
+  const base = Math.min(w, h);
+  const spots: [number, number][] = [
+    [0.1, 0.12], [0.88, 0.1], [0.08, 0.86], [0.9, 0.88], [0.5, 0.06], [0.06, 0.5], [0.94, 0.48],
+  ];
+  const count = 5;
+  for (let k = 0; k < count; k++) {
+    const [fx, fy] = spots[(k + seed) % spots.length];
+    const px = x + w * (fx + (rand() - 0.5) * 0.06);
+    const py = y + h * (fy + (rand() - 0.5) * 0.06);
+    const kind = kinds[(k + seed) % kinds.length];
+    const s = base * (0.1 + rand() * 0.06);
+    switch (kind) {
+      case 'strawberries':
+        drawStrawberry(ctx, px, py, s * 1.1);
+        break;
+      case 'bows':
+        drawBow(ctx, px, py, s * 1.4, '#f29bb0', (rand() - 0.5) * 0.6);
+        break;
+      case 'hearts':
+        drawHeart(ctx, px, py, s, ['#f29bb0', '#e46a86', '#ffffff'][k % 3], 0.95);
+        break;
+      case 'pearls':
+        drawPearl(ctx, px, py, s * 0.18);
+        drawPearl(ctx, px + s * 0.34, py + s * 0.12, s * 0.14);
+        drawPearl(ctx, px - s * 0.3, py + s * 0.16, s * 0.12);
+        break;
+      case 'cherries':
+        drawCherry(ctx, px, py, s * 1.1);
+        break;
+      case 'sparkles':
+        drawSparkle(ctx, px, py, s, k % 2 ? '#ffffff' : '#ffe39a', 0.95);
+        break;
+      case 'flowers':
+        drawFlower(ctx, px, py, s, k % 2 ? '#ffffff' : '#f8c6d3');
+        break;
+      case 'stars':
+        drawStar(ctx, px, py, s * 0.9, k % 2 ? '#ffe39a' : '#ffffff');
+        break;
+    }
   }
 }
 
@@ -329,13 +485,16 @@ function drawText(ctx: CanvasRenderingContext2D, g: Geometry, cust: Customizatio
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   const lines: { text: string; font: string; weight: string; max: number; color: string }[] = [];
-  const heavy = cust.font === 'Anton' ? 110 : cust.font === 'Press Start 2P' ? 52 : 84;
-  if (cust.title) lines.push({ text: cust.title, font: cust.font, weight: '400', max: Math.min(heavy, r.h * 0.42), color: c.ink });
-  if (cust.subtitle) lines.push({ text: cust.subtitle, font: 'Space Mono', weight: '700', max: 30, color: c.ink });
+  const elegant = ELEGANT.includes(cust.font);
+  const heavy = cust.font === 'Anton' ? 110 : cust.font === 'Press Start 2P' ? 52 : cust.font === 'Pinyon Script' ? 170 : cust.font === 'Fredoka' ? 92 : 84;
+  const subFont = elegant ? 'Playfair Display' : 'Space Mono';
+  const subWeight = elegant ? 'italic 500' : '700';
+  if (cust.title) lines.push({ text: cust.title, font: cust.font, weight: cust.font === 'Playfair Display' ? 'italic 700' : ROUNDED.includes(cust.font) ? '700' : '400', max: Math.min(heavy, r.h * (cust.font === 'Pinyon Script' ? 0.62 : 0.46)), color: c.ink });
+  if (cust.subtitle) lines.push({ text: cust.subtitle, font: subFont, weight: subWeight, max: 30, color: c.ink });
   const meta: string[] = [];
   if (cust.showScore) meta.push(o.score);
   if (cust.showDate) meta.push(formatDate(o.date ?? new Date()));
-  if (meta.length) lines.push({ text: meta.join('   '), font: 'Space Mono', weight: '400', max: 22, color: c.accent });
+  if (meta.length) lines.push({ text: meta.join('   '), font: subFont, weight: elegant ? 'italic 500' : '400', max: 22, color: elegant ? c.ink : c.accent });
 
   const sizes = lines.map((l) => fitFont(ctx, l.text, l.font, l.weight, l.max, r.w));
   const total = sizes.reduce((a, s) => a + s * 1.25, 0);
@@ -353,9 +512,16 @@ export function formatDate(d: Date) {
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
 }
 
+const SCRIPT_STICKERS = ['t-xoxo', 't-cutie'];
+
 export function stickerBox(ctx: CanvasRenderingContext2D, s: Sticker, g: Geometry) {
   const def = STICKERS.find((d) => d.id === s.kind);
   const cx = s.x * g.w, cy = s.y * g.h;
+  if (def?.text && SCRIPT_STICKERS.includes(s.kind)) {
+    const size = 72 * s.scale;
+    ctx.font = `400 ${size}px "Pinyon Script"`;
+    return { cx, cy, w: ctx.measureText(def.text).width + 10, h: size * 1.1, text: def.text, size, script: true };
+  }
   if (def?.text) {
     const size = 34 * s.scale;
     ctx.font = `400 ${size}px "Press Start 2P"`;
@@ -373,7 +539,16 @@ function drawSticker(ctx: CanvasRenderingContext2D, s: Sticker, g: Geometry, cus
   ctx.save();
   ctx.translate(b.cx, b.cy);
   ctx.rotate(rot);
-  if (b.text) {
+  if (b.text && b.script) {
+    ctx.font = `400 ${b.size}px "Pinyon Script"`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = b.size * 0.12;
+    ctx.strokeStyle = '#ffffff';
+    ctx.strokeText(b.text, 0, 0);
+    ctx.fillStyle = cust.colors.ink;
+    ctx.fillText(b.text, 0, 0);
+  } else if (b.text) {
     ctx.fillStyle = cust.colors.shadow;
     ctx.fillRect(-b.w / 2 + 6, -b.h / 2 + 6, b.w, b.h);
     ctx.fillStyle = cust.colors.accent;

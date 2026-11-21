@@ -1,5 +1,6 @@
 // Original pixel art drawn for this product. Each sprite is a grid of palette characters; '.' is transparent.
 const PAL: Record<string, string> = {
+  Q: '#f4b6c2',
   K: '#171312',
   W: '#ffffff',
   C: '#DED5BC',
@@ -53,6 +54,40 @@ export const SPRITES: Record<string, string[]> = {
     '...y...',
   ],
   plus: ['.L.', 'LLL', '.L.'],
+  bow: [
+    'pp.......pp',
+    'pPp.....pPp',
+    'pPPp...pPPp',
+    'pPPPpRpPPPp',
+    'pPPPRRRPPPp',
+    'pPPPpRpPPPp',
+    'pPPp.R.pPPp',
+    'pPp.RR.RpPp',
+    'pp.RR...RRp',
+    '...R.....R.',
+  ],
+  pearl: ['.WW.', 'WWCW', 'WCCW', '.WW.'],
+  bunny: [
+    '.KK...KK.',
+    '.KpK.KpK.',
+    '.KpK.KpK.',
+    '.KpK.KpK.',
+    'KKWWWWWKK',
+    'KWWWWWWWK',
+    'KWKWWWKWK',
+    'KpWWKWWpK',
+    '.KWWWWWK.',
+    '..KKKKK..',
+  ],
+  strawberry: [
+    '..lLl..',
+    '.RRlRR.',
+    'RRWRRRR',
+    'RRRRWRR',
+    '.RWRRR.',
+    '..RRR..',
+    '...R...',
+  ],
   coin: [
     '..GGGG..',
     '.GYYYYG.',
@@ -186,6 +221,10 @@ export function drawSprite(
 /** Sticker catalogue: pixel sprites plus score-style text badges. */
 export const STICKERS: { id: string; label: string; text?: string }[] = [
   { id: 'heart', label: 'Heart' },
+  { id: 'bow', label: 'Bow' },
+  { id: 'pearl', label: 'Pearl' },
+  { id: 'bunny', label: 'Bunny' },
+  { id: 'strawberry', label: 'Strawberry' },
   { id: 'star', label: 'Star' },
   { id: 'sparkle', label: 'Sparkle' },
   { id: 'coin', label: 'Coin' },
@@ -203,4 +242,6 @@ export const STICKERS: { id: string; label: string; text?: string }[] = [
   { id: 't-lvl', label: 'LV UP', text: 'LV UP' },
   { id: 't-combo', label: 'x2 COMBO', text: 'x2 COMBO' },
   { id: 't-bff', label: 'BFF', text: 'BFF' },
+  { id: 't-xoxo', label: 'xoxo', text: 'xoxo' },
+  { id: 't-cutie', label: 'cutie', text: 'cutie' },
 ];

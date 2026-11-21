@@ -13,16 +13,16 @@ export function Templates() {
   return (
     <section className="screen">
       <header className="screen-head">
-        <h2>CHOOSE YOUR STAGE</h2>
+        <h2>Pick your strip</h2>
         <p className="muted">{TEMPLATES.length} strips in {COLLECTIONS.length} collections. You can recolor and restyle any of them later.</p>
       </header>
       <div className="row wrap tabs" role="tablist">
         <Chip active={filter === 'all'} onClick={() => setFilter('all')}>
-          ALL
+          All
         </Chip>
         {COLLECTIONS.map((c) => (
           <Chip key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
-            {c.name.toUpperCase()}
+            {c.name}
           </Chip>
         ))}
       </div>
@@ -51,6 +51,7 @@ function TemplateCard({ t, on, onClick }: { t: Template; on: boolean; onClick: (
     showDate: true,
     showScore: true,
     stickers: [],
+    sprinkles: t.collection === 'coquette' ? ['hearts'] : t.collection === 'kawaii' ? ['strawberries'] : [],
   };
   return (
     <button className={`tpl-card ${on ? 'tpl-on' : ''}`} onClick={onClick}>

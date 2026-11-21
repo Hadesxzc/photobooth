@@ -1,10 +1,11 @@
 export type Mode = 'solo' | 'together' | 'remote';
-export type Step = 'start' | 'template' | 'booth' | 'arrange' | 'customize' | 'export';
+export type Step = 'start' | 'template' | 'booth' | 'peek' | 'glow' | 'customize' | 'export';
 
 export type LayoutId = 'strip' | 'grid' | 'polaroid' | 'wide' | 'film';
-export type CollectionId = 'night' | 'gameover' | 'cartridge' | 'garden' | 'holiday' | 'filmroll';
-export type PatternId = 'none' | 'stars' | 'dots' | 'checker' | 'grid' | 'stripes' | 'snow' | 'hearts';
-export type BorderId = 'none' | 'solid' | 'double' | 'dashed' | 'pixel';
+export type CollectionId = 'coquette' | 'kawaii' | 'night' | 'gameover' | 'cartridge' | 'garden' | 'holiday' | 'filmroll';
+export type PatternId = 'none' | 'gingham' | 'stars' | 'dots' | 'checker' | 'grid' | 'stripes' | 'snow' | 'hearts';
+export type BorderId = 'none' | 'solid' | 'double' | 'dashed' | 'pixel' | 'white' | 'rounded' | 'lace' | 'washi' | 'pearl';
+export type SprinkleId = 'strawberries' | 'bows' | 'hearts' | 'pearls' | 'cherries' | 'sparkles' | 'flowers' | 'stars';
 export type FontId =
   | 'Anton'
   | 'Space Mono'
@@ -12,7 +13,10 @@ export type FontId =
   | 'Press Start 2P'
   | 'VT323'
   | 'Silkscreen'
-  | 'Pixelify Sans';
+  | 'Pixelify Sans'
+  | 'Pinyon Script'
+  | 'Playfair Display'
+  | 'Fredoka';
 
 export type EffectId =
   | 'none'
@@ -25,7 +29,9 @@ export type EffectId =
   | 'catears'
   | 'mustache'
   | 'hearteyes'
-  | 'halo';
+  | 'halo'
+  | 'bow'
+  | 'bunnyears';
 
 export interface Palette {
   bg: string;
@@ -55,11 +61,22 @@ export interface Customization {
   border: BorderId;
   slotCount: number;
   stickers: Sticker[];
+  sprinkles: SprinkleId[];
+}
+
+export interface Look {
+  filter: number;
+  bright: number;
+  warm: number;
+  soft: number;
 }
 
 export interface Shot {
   id: string;
-  url: string; // object URL of a JPEG blob
+  url: string; // finished photo: raw + look + face-effect layer
+  raw: string; // unfiltered camera frame
+  fx?: string; // transparent face-effect layer (PNG), drawn on top after the look
+  look: Look;
   player: number; // 0-based player index who took it
 }
 

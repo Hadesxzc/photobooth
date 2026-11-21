@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { getTemplate, layoutGeometry, slotAspect } from '../lib/templates';
-import { FILTERS } from '../lib/filters';
+import { FILTERS, canvasToBlob } from '../lib/filters';
+import { DEFAULT_LOOK, renderLook } from '../lib/process';
 import { EFFECTS } from '../lib/effects';
 import { sfx } from '../lib/sound';
 import { joinSession, leaveSession, onMessage, send, useRemote } from '../lib/remote';
@@ -43,7 +44,13 @@ export function Guest({ hostId }: { hostId: string }) {
           setTimeout(() => setFlash(false), 180);
         }
         if (settingsRef.current.sound) sfx.shutter();
-        const blob = await cam.current.capture();
+        const { raw, fx } = await cam.current.capture();
+        const rawUrl = URL.createObjectURL(raw);
+        const fxUrl = fx ? URL.createObjectURL(fx) : undefined;
+        const done = await renderLook(rawUrl, fxUrl, { ...DEFAULT_LOOK, filter: settingsRef.current.filter });
+        const blob = await canvasToBlob(done);
+        URL.revokeObjectURL(rawUrl);
+        if (fxUrl) URL.revokeObjectURL(fxUrl);
         send({ t: 'shot', index: m.index, data: await blob.arrayBuffer() });
         setCount((c) => c + 1);
       }
@@ -126,15 +133,15 @@ export function Guest({ hostId }: { hostId: string }) {
         </div>
       </div>
       <aside className="booth-panel">
-        <Label>LOOK FILTER</Label>
+        <Label>Filter</Label>
         <div className="row wrap">
           {FILTERS.map((f) => (
             <Chip key={f.id} active={settings.filter === f.id} onClick={() => patchSettings({ filter: f.id })}>
-              {f.name.toUpperCase()}
+              {f.name}
             </Chip>
           ))}
         </div>
-        <Label>FACE EFFECT</Label>
+        <Label>Face effect</Label>
         <div className="fx-grid">
           {EFFECTS.map((e) => (
             <button

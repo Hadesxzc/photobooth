@@ -7,7 +7,8 @@ import { getFaceLandmarker } from '../lib/face';
 import { getCamera, stopCamera } from '../lib/camera';
 
 export interface CameraHandle {
-  capture(): Promise<Blob>;
+  /** Unfiltered frame (mirrored like the preview) plus the face-effect layer, if any. */
+  capture(): Promise<{ raw: Blob; fx?: Blob }>;
 }
 
 export type CamState = 'loading' | 'live' | 'denied' | 'unsupported' | 'error';
@@ -22,11 +23,12 @@ interface Props {
   onStream?: (s: MediaStream) => void;
   onCamState?: (s: CamState) => void;
   onFaceState?: (s: FaceState) => void;
+  onUpload?: () => void;
   children?: ReactNode;
 }
 
 export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
-  { aspect, filter, effect, mirror, facing, onStream, onCamState, onFaceState, children },
+  { aspect, filter, effect, mirror, facing, onStream, onCamState, onFaceState, onUpload, children },
   ref
 ) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -37,6 +39,7 @@ export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
   const landmarker = useRef<FaceLandmarker | null>(null);
   const [cam, setCam] = useState<CamState>('loading');
   const [glError, setGlError] = useState(false);
+  const [retry, setRetry] = useState(0);
   const faceStateRef = useRef<FaceState>('off');
   const cbs = useRef({ onStream, onCamState, onFaceState });
   cbs.current = { onStream, onCamState, onFaceState };
@@ -70,7 +73,7 @@ export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
     return () => {
       cancelled = true;
     };
-  }, [facing]);
+  }, [facing, retry]);
 
   useEffect(() => () => stopCamera(), []);
 
@@ -151,14 +154,20 @@ export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
 
   useImperativeHandle(ref, () => ({
     async capture() {
-      const gl = glRef.current!, fx = fxRef.current!;
+      const v = videoRef.current!, fx = fxRef.current!;
+      const w = v.videoWidth, h = v.videoHeight;
       const c = document.createElement('canvas');
-      c.width = gl.width;
-      c.height = gl.height;
+      c.width = w;
+      c.height = h;
       const x = c.getContext('2d')!;
-      x.drawImage(gl, 0, 0);
-      x.drawImage(fx, 0, 0);
-      return canvasToBlob(c);
+      if (live.current.mirror) {
+        x.translate(w, 0);
+        x.scale(-1, 1);
+      }
+      x.drawImage(v, 0, 0, w, h);
+      const raw = await canvasToBlob(c);
+      if (live.current.effect === 'none') return { raw };
+      return { raw, fx: await canvasToBlob(fx, 'image/png') };
     },
   }));
 
@@ -169,14 +178,32 @@ export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
       <canvas ref={fxRef} className="cam-layer" />
       {cam !== 'live' && (
         <div className="cam-msg">
-          {cam === 'loading' && <p className="blink">WAKING UP CAMERA…</p>}
-          {cam === 'denied' && (
-            <p>
-              Camera access was blocked. Allow it in your browser's site settings, or use <b>Upload photos</b> below.
-            </p>
+          {cam === 'loading' ? (
+            <p className="blink">Turning on your camera…</p>
+          ) : (
+            <div className="cam-msg-card">
+              <h3>{cam === 'denied' ? 'Camera is blocked' : 'No camera found'}</h3>
+              <p>
+                {cam === 'denied'
+                  ? "Allow the camera for this site in your browser's address bar, then try again."
+                  : cam === 'unsupported'
+                    ? "This browser can't open the camera here. You can still use photos you already have."
+                    : 'No camera was found, or another app is using it. Close that app and try again.'}
+              </p>
+              <div className="row wrap" style={{ justifyContent: 'center' }}>
+                {cam !== 'unsupported' && (
+                  <button className="btn btn-primary" onClick={() => setRetry((r) => r + 1)}>
+                    Try again
+                  </button>
+                )}
+                {onUpload && (
+                  <button className="btn" onClick={onUpload}>
+                    Use my photos
+                  </button>
+                )}
+              </div>
+            </div>
           )}
-          {cam === 'unsupported' && <p>This browser can't open the camera here. Use <b>Upload photos</b> instead.</p>}
-          {cam === 'error' && <p>No camera found, or it's busy in another app. Use <b>Upload photos</b> instead.</p>}
         </div>
       )}
       {glError && (

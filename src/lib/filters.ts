@@ -13,7 +13,20 @@ export const FILTERS = [
   { id: 10, name: 'Lime Duo' },
   { id: 11, name: 'Faded Print' },
   { id: 12, name: 'Pop' },
+  { id: 13, name: 'Rosé' },
+  { id: 14, name: 'Dreamy' },
+  { id: 15, name: 'Milk Tea' },
+  { id: 16, name: 'Peach' },
+  { id: 17, name: 'Cherry' },
+  { id: 18, name: 'Cloud' },
 ];
+
+export interface Adjust {
+  bright: number; // -1..1
+  warm: number; // -1..1
+  soft: number; // 0..1
+}
+export const NO_ADJUST: Adjust = { bright: 0, warm: 0, soft: 0 };
 
 const VERT = `
 attribute vec2 a_pos;
@@ -34,6 +47,9 @@ uniform sampler2D u_tex;
 uniform int u_mode;
 uniform float u_time;
 uniform vec2 u_res;
+uniform float u_bright;
+uniform float u_warm;
+uniform float u_soft;
 
 float rand(vec2 co) { return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453); }
 float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
@@ -52,6 +68,17 @@ void main() {
     uv = (floor(uv * u_res / block) + 0.5) * block / u_res;
   }
   vec3 c = texture2D(u_tex, uv).rgb;
+  if (u_soft > 0.0) {
+    vec2 px = 2.5 / u_res;
+    vec3 b = (texture2D(u_tex, uv + vec2(px.x, 0.0)).rgb + texture2D(u_tex, uv - vec2(px.x, 0.0)).rgb +
+              texture2D(u_tex, uv + vec2(0.0, px.y)).rgb + texture2D(u_tex, uv - vec2(0.0, px.y)).rgb +
+              texture2D(u_tex, uv + px).rgb + texture2D(u_tex, uv - px).rgb +
+              texture2D(u_tex, uv + vec2(px.x, -px.y)).rgb + texture2D(u_tex, uv + vec2(-px.x, px.y)).rgb) * 0.125;
+    float l = luma(c);
+    float mid = smoothstep(0.12, 0.45, l) * (1.0 - smoothstep(0.8, 0.97, l));
+    c = mix(c, b, u_soft * 0.75 * mid);
+    c += u_soft * 0.04;
+  }
 
   if (u_mode == 1) {
     c = vec3(luma(c));
@@ -102,7 +129,31 @@ void main() {
     c = mix(c, vec3(0.87, 0.84, 0.74), 0.1);
   } else if (u_mode == 12) {
     c = contrast(sat(c, 1.5), 1.12);
+  } else if (u_mode == 13) {
+    c = sat(c, 0.9) * vec3(1.06, 0.96, 0.98) + vec3(0.06, 0.02, 0.04);
+    c = mix(c, vec3(1.0, 0.82, 0.86), 0.12);
+  } else if (u_mode == 14) {
+    vec3 blur = (texture2D(u_tex, uv + vec2(0.004, 0.0)).rgb + texture2D(u_tex, uv - vec2(0.004, 0.0)).rgb +
+                 texture2D(u_tex, uv + vec2(0.0, 0.005)).rgb + texture2D(u_tex, uv - vec2(0.0, 0.005)).rgb) * 0.25;
+    c = mix(c, max(c, blur), 0.6);
+    c = sat(c, 0.85) * 0.9 + vec3(0.1, 0.08, 0.1);
+    c = mix(c, vec3(1.0, 0.92, 0.95), 0.1);
+    c = vignette(c, v_uv, -0.25);
+  } else if (u_mode == 15) {
+    c = contrast(sat(c, 0.8), 0.9) * vec3(1.04, 1.0, 0.94) + vec3(0.06, 0.04, 0.02);
+  } else if (u_mode == 16) {
+    c = sat(c, 0.95) * vec3(1.06, 0.98, 0.92) + vec3(0.07, 0.03, 0.02);
+    c = mix(c, vec3(1.0, 0.8, 0.7), 0.1);
+  } else if (u_mode == 17) {
+    c = contrast(sat(c, 1.2), 1.05) * vec3(1.08, 0.94, 0.98);
+    c = mix(c, vec3(0.95, 0.45, 0.55), 0.08);
+  } else if (u_mode == 18) {
+    c = sat(c, 0.8) * 0.92 + vec3(0.1, 0.1, 0.13);
+    c = mix(c, vec3(0.96, 0.95, 1.0), 0.12);
   }
+  c += u_bright * 0.18;
+  c.r += u_warm * 0.06;
+  c.b -= u_warm * 0.07;
   gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
 }`;
 
@@ -133,7 +184,7 @@ export class FilterRenderer {
     const a = gl.getAttribLocation(prog, 'a_pos');
     gl.enableVertexAttribArray(a);
     gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
-    for (const n of ['u_tex', 'u_mode', 'u_time', 'u_res', 'u_mirror']) this.loc[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['u_tex', 'u_mode', 'u_time', 'u_res', 'u_mirror', 'u_bright', 'u_warm', 'u_soft']) this.loc[n] = gl.getUniformLocation(prog, n);
     this.tex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, this.tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -142,7 +193,7 @@ export class FilterRenderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   }
 
-  render(source: TexImageSource, w: number, h: number, mode: number, mirror: boolean, time: number) {
+  render(source: TexImageSource, w: number, h: number, mode: number, mirror: boolean, time: number, adj: Adjust = NO_ADJUST) {
     const gl = this.gl;
     if (this.canvas.width !== w || this.canvas.height !== h) {
       this.canvas.width = w;
@@ -156,24 +207,22 @@ export class FilterRenderer {
     gl.uniform1f(this.loc.u_time, time % 1000);
     gl.uniform2f(this.loc.u_res, w, h);
     gl.uniform1f(this.loc.u_mirror, mirror ? 1 : 0);
+    gl.uniform1f(this.loc.u_bright, adj.bright);
+    gl.uniform1f(this.loc.u_warm, adj.warm);
+    gl.uniform1f(this.loc.u_soft, adj.soft);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 }
 
-let offscreen: FilterRenderer | null = null;
-
-/** Applies a look filter to an uploaded image, downscaled to at most `max` px on the long side. */
-export async function filterImageFile(file: Blob, mode: number, max = 1600): Promise<Blob> {
+/** Reads an uploaded image, downscaled to at most `max` px on the long side, as an unfiltered JPEG. */
+export async function loadUpload(file: Blob, max = 1600): Promise<Blob> {
   const bmp = await createImageBitmap(file);
   const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
-  const w = Math.round(bmp.width * s), h = Math.round(bmp.height * s);
   const tmp = document.createElement('canvas');
-  tmp.width = w;
-  tmp.height = h;
-  tmp.getContext('2d')!.drawImage(bmp, 0, 0, w, h);
-  offscreen ??= new FilterRenderer();
-  offscreen.render(tmp, w, h, mode, false, performance.now() / 1000);
-  return canvasToBlob(offscreen.canvas);
+  tmp.width = Math.round(bmp.width * s);
+  tmp.height = Math.round(bmp.height * s);
+  tmp.getContext('2d')!.drawImage(bmp, 0, 0, tmp.width, tmp.height);
+  return canvasToBlob(tmp);
 }
 
 export function canvasToBlob(c: HTMLCanvasElement, type = 'image/jpeg', q = 0.92): Promise<Blob> {

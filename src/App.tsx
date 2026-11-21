@@ -3,15 +3,19 @@ import { STEPS, useStore } from './store';
 import { Start } from './screens/Start';
 import { Templates } from './screens/Templates';
 import { Booth } from './screens/Booth';
-import { Arrange } from './screens/Arrange';
+import { Peek } from './screens/Peek';
+import { Glow } from './screens/Glow';
 import { Customize } from './screens/Customize';
 import { Export } from './screens/Export';
 import { Guest } from './screens/Guest';
-import { PixelIcon } from './components/ui';
+import { Bow } from './components/Decor';
+import { Landing } from './components/Landing';
+import { useState } from 'react';
 
 export default function App() {
   const joinId = new URLSearchParams(location.search).get('join');
   const { step, furthest, go, shots } = useStore();
+  const [entered, setEntered] = useState(() => new URLSearchParams(location.search).has('booth'));
 
   if (joinId)
     return (
@@ -20,6 +24,13 @@ export default function App() {
         <Guest hostId={joinId} />
       </div>
     );
+
+  const enter = () => {
+    window.scrollTo({ top: 0 });
+    setEntered(true);
+  };
+
+  if (!entered) return <Landing onStart={enter} />;
 
   const current = STEPS.findIndex((s) => s.id === step);
   const hasShots = shots.some(Boolean);
@@ -52,7 +63,8 @@ export default function App() {
         {step === 'start' && <Start />}
         {step === 'template' && <Templates />}
         {step === 'booth' && <Booth />}
-        {step === 'arrange' && <Arrange />}
+        {step === 'peek' && <Peek />}
+        {step === 'glow' && <Glow />}
         {step === 'customize' && <Customize />}
         {step === 'export' && <Export />}
       </main>
@@ -64,8 +76,8 @@ function TopBar({ children }: { children?: React.ReactNode }) {
   return (
     <header className="topbar">
       <a className="logo" href={location.pathname} aria-label={`${APP_NAME} home`}>
-        <PixelIcon id="star" size={18} />
-        <span>{APP_NAME}</span>
+        <Bow size={24} />
+        <span>{APP_NAME.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase())}</span>
       </a>
       {children}
     </header>

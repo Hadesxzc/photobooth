@@ -234,3 +234,4 @@ input[type='range'] { accent-color: var(--lime); width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   .blink, .press-start, .sky-star { animation: none; }
 }
+

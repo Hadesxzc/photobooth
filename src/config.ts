@@ -19,6 +19,9 @@ export const FONTS = [
   'VT323',
   'Silkscreen',
   'Pixelify Sans',
+  'Pinyon Script',
+  'Playfair Display',
+  'Fredoka',
 ] as const;
 
 /** Export scale: base strip is 600×1800, so ×2 gives 1200×3600 (2×6 in at 600 dpi, crisp at 300). */

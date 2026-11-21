@@ -96,28 +96,28 @@ export function Export() {
         <StripPreview template={template} cust={cust} images={images} labels={labels} className="strip-big strip-final" />
       </div>
       <aside className="split-side">
-        <p className="kicker">★ STAGE CLEAR ★</p>
-        <h2>SAVE YOUR STRIP</h2>
+        <p className="mode-step">all done!</p>
+        <h2>Save your strip</h2>
         <div className="export-actions">
           <Button variant="primary" big onClick={png} disabled={!!busy || !ready}>
-            {busy === 'PNG' ? 'RENDERING…' : 'DOWNLOAD PNG'}
+            {busy === 'PNG' ? 'Saving…' : 'Download PNG'}
           </Button>
           <Button variant="lime" onClick={gif} disabled={!!busy || !ready}>
-            {busy === 'GIF' ? 'MAKING GIF…' : 'DOWNLOAD GIF'}
+            {busy === 'GIF' ? 'Making GIF…' : 'Download GIF'}
           </Button>
           <Button onClick={copy} disabled={!!busy || !ready}>
-            COPY IMAGE
+            Copy image
           </Button>
           {canShare && (
             <Button onClick={share} disabled={!!busy || !ready}>
-              SHARE…
+              Share…
             </Button>
           )}
         </div>
         {msg && <p className={msg.includes("didn't") ? 'warn' : 'ok'}>{msg}</p>}
         {mode === 'remote' && (
           <p className={sent ? 'ok' : 'muted'}>
-            {sent ? '★ Sent to Player 2 ★' : remote.status === 'connected' ? 'Sending to Player 2…' : 'Player 2 is offline.'}
+            {sent ? 'Sent to Player 2' : remote.status === 'connected' ? 'Sending to Player 2…' : 'Player 2 is offline.'}
           </p>
         )}
         <p className="muted small">
@@ -125,9 +125,9 @@ export function Export() {
           with everyone in the photo first.
         </p>
         <div className="row wrap push">
-          <Button onClick={() => go('customize')}>◀ EDIT MORE</Button>
+          <Button onClick={() => go('customize')}>Edit more</Button>
           <Button variant="danger" onClick={reset}>
-            PLAY AGAIN
+            Start over
           </Button>
         </div>
       </aside>
