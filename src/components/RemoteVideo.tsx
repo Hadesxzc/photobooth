@@ -36,19 +36,37 @@ export function RemoteVideo({ side, label, filter }: { side: 'left' | 'right'; l
     v.style.opacity = renderer ? '0' : '1';
     if (!renderer) return;
 
-    let raf = 0, vfc = 0, stopped = false;
-    // Draw only when a new frame arrives from the call; fall back to animation frames where unsupported.
-    const draw = (t: number) => {
+    let raf = 0, vfc = 0, watchdog = 0, stopped = false, useVfc = !!v.requestVideoFrameCallback;
+    // Draw only when a new frame arrives from the call. If frame callbacks don't arrive, switch to
+    // animation frames for good so the picture never freezes.
+    const next = () => {
       if (stopped) return;
-      if (v.readyState >= 2 && v.videoWidth) renderer!.render(v, v.videoWidth, v.videoHeight, filterRef.current, true, t / 1000);
-      if (v.requestVideoFrameCallback) vfc = v.requestVideoFrameCallback(draw);
-      else raf = requestAnimationFrame(draw);
+      if (useVfc && v.readyState >= 2) {
+        let fired = false;
+        vfc = v.requestVideoFrameCallback!((t) => {
+          fired = true;
+          clearTimeout(watchdog);
+          draw(t);
+        });
+        watchdog = window.setTimeout(() => {
+          if (fired) return;
+          useVfc = false;
+          v.cancelVideoFrameCallback?.(vfc);
+          raf = requestAnimationFrame(draw);
+        }, 500);
+      } else {
+        raf = requestAnimationFrame(draw);
+      }
     };
-    if (v.requestVideoFrameCallback) vfc = v.requestVideoFrameCallback(draw);
-    else raf = requestAnimationFrame(draw);
+    const draw = (t: number) => {
+      next();
+      if (v.readyState >= 2 && v.videoWidth) renderer!.render(v, v.videoWidth, v.videoHeight, filterRef.current, true, t / 1000);
+    };
+    raf = requestAnimationFrame(draw);
     return () => {
       stopped = true;
       cancelAnimationFrame(raf);
+      clearTimeout(watchdog);
       v.cancelVideoFrameCallback?.(vfc);
     };
   }, [stream]);

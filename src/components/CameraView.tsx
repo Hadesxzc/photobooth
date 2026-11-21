@@ -116,15 +116,17 @@ export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
 
     // Draw only when the camera delivers a new frame (requestVideoFrameCallback), instead of on every
     // display refresh. On 60–120 Hz screens with a 30 fps camera this halves the GPU and face-tracking work.
-    // A short watchdog falls back to animation frames if the video stalls (e.g. while switching cameras).
+    // If frame callbacks don't arrive (some browsers skip them for a hidden <video>), switch to animation
+    // frames for good, so the preview never freezes.
     type VfcVideo = HTMLVideoElement & {
       requestVideoFrameCallback?: (cb: (now: number) => void) => number;
       cancelVideoFrameCallback?: (id: number) => void;
     };
+    let useVfc = true;
     const schedule = () => {
       if (stopped) return;
       const v = videoRef.current as VfcVideo | null;
-      if (v?.requestVideoFrameCallback && v.readyState >= 2) {
+      if (useVfc && v?.requestVideoFrameCallback && v.readyState >= 2) {
         let fired = false;
         vfc = v.requestVideoFrameCallback((now) => {
           fired = true;
@@ -133,6 +135,7 @@ export const CameraView = forwardRef<CameraHandle, Props>(function CameraView(
         });
         watchdog = window.setTimeout(() => {
           if (fired) return;
+          useVfc = false;
           v.cancelVideoFrameCallback?.(vfc);
           raf = requestAnimationFrame(loop);
         }, 250);
