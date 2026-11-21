@@ -141,11 +141,20 @@ input[type='range'] { accent-color: var(--lime); }
 .lp-logo, .logo { display: inline-flex; align-items: baseline; }
 
 /* Screen light: the edges of the screen glow while shooting, and the whole screen flashes at capture */
-.ring-light {
-  position: fixed; inset: 0; z-index: 90; pointer-events: none;
-  border: 6vmin solid #ffffff; transition: border-width 0.25s;
+.ring-light { position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden; }
+/* A rounded window: everything outside it is lit white, and the light feathers softly inward. */
+.ring-light::before {
+  content: ''; position: absolute; inset: clamp(10px, 2.2vmin, 22px); border-radius: clamp(18px, 4vmin, 44px);
+  box-shadow: 0 0 0 100vmax #fff, inset 0 0 clamp(18px, 4vmin, 40px) clamp(4px, 1vmin, 10px) rgba(255, 255, 255, 0.95),
+    inset 0 0 clamp(50px, 12vmin, 140px) rgba(255, 246, 232, 0.55);
+  transition: inset 0.35s ease, border-radius 0.35s ease, box-shadow 0.35s ease;
 }
-.ring-light.ring-strong { border-width: 12vmin; }
+.ring-light.ring-strong::before {
+  inset: clamp(22px, 5vmin, 56px); border-radius: clamp(28px, 6vmin, 64px);
+  box-shadow: 0 0 0 100vmax #fff, inset 0 0 clamp(24px, 5vmin, 56px) clamp(6px, 1.5vmin, 16px) #fff,
+    inset 0 0 clamp(60px, 12vmin, 140px) rgba(255, 246, 232, 0.45);
+}
+@media (prefers-reduced-motion: reduce) { .ring-light::before { transition: none; } }
 .screen-flash { position: fixed; inset: 0; z-index: 100; pointer-events: none; background: #ffffff; }
 .light-toggle {
   align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
