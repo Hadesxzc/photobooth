@@ -71,8 +71,6 @@ h1, h2 { font-weight: 500; letter-spacing: -0.01em; }
 .cd-bar span { border-radius: 999px; height: 14px; background: #f8d3dc; }
 .cd-bar .cd-on { background: var(--lime); }
 .cd-label { border-radius: 999px; background: #fff; color: var(--gold); letter-spacing: 0.08em; }
-.pip { border-radius: 12px; overflow: hidden; border-color: #fff; }
-.pip span { background: var(--lime); color: #fff; }
 
 .tray-slot { border-radius: 14px; border-width: 1.5px; background: #fff; }
 .tray-full { border-color: var(--lime); }

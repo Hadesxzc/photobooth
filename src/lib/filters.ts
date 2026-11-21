@@ -163,9 +163,16 @@ export class FilterRenderer {
   private loc: Record<string, WebGLUniformLocation | null> = {};
   private tex: WebGLTexture;
 
-  constructor(canvas: HTMLCanvasElement = document.createElement('canvas')) {
+  /** `live`: an on-screen preview that is never read back, so the browser can skip keeping a copy of each frame. */
+  constructor(canvas: HTMLCanvasElement = document.createElement('canvas'), live = false) {
     this.canvas = canvas;
-    const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true, premultipliedAlpha: false });
+    const gl = canvas.getContext('webgl', {
+      preserveDrawingBuffer: !live,
+      premultipliedAlpha: false,
+      antialias: false,
+      powerPreference: live ? 'high-performance' : 'default',
+      desynchronized: live,
+    } as WebGLContextAttributes);
     if (!gl) throw new Error('WebGL is not available');
     this.gl = gl;
     const prog = gl.createProgram()!;

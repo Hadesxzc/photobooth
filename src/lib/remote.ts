@@ -9,9 +9,10 @@ export type RemoteMsg =
   | { t: 'hello'; templateId: string; players: string[] }
   | { t: 'shoot'; index: number; countdown: number }
   | { t: 'status'; text: string }
-  | { t: 'shot'; index: number; data: ArrayBuffer }
+  | { t: 'shot'; index: number; data: ArrayBuffer; fx?: ArrayBuffer }
   | { t: 'strip'; data: ArrayBuffer; name: string }
-  | { t: 'name'; name: string };
+  | { t: 'name'; name: string }
+  | { t: 'look'; filter: number };
 
 interface RemoteState {
   role: 'host' | 'guest' | null;
@@ -35,6 +36,27 @@ let call: MediaConnection | null = null;
 const listeners = new Set<(m: RemoteMsg) => void>();
 
 const set = useRemote.setState;
+
+/** Favour a smooth frame rate over sharpness for the live call; photos are sent separately at full quality. */
+function tune(c: MediaConnection) {
+  const apply = () => {
+    const pc = c.peerConnection;
+    if (!pc) return;
+    for (const sender of pc.getSenders()) {
+      const track = sender.track;
+      if (!track || track.kind !== 'video') continue;
+      if ('contentHint' in track) track.contentHint = 'motion';
+      const params = sender.getParameters();
+      if (!params.encodings?.length) params.encodings = [{}];
+      params.encodings[0].maxFramerate = 30;
+      params.encodings[0].maxBitrate = 1_500_000;
+      (params as RTCRtpSendParameters & { degradationPreference?: string }).degradationPreference = 'maintain-framerate';
+      sender.setParameters(params).catch(() => undefined);
+    }
+  };
+  c.on('stream', apply);
+  setTimeout(apply, 1500);
+}
 
 async function newPeer() {
   const { Peer } = await import('peerjs');
@@ -90,6 +112,7 @@ export async function joinSession(hostId: string) {
   peer.on('call', (incoming) => {
     call = incoming;
     incoming.answer(currentStream() ?? undefined);
+    tune(incoming);
     incoming.on('stream', (s) => set({ remoteStream: s }));
   });
   peer.on('error', (e) =>
@@ -103,6 +126,7 @@ export function ensureCall(stream: MediaStream) {
   if (call && call.open && call.localStream === stream) return;
   call?.close();
   call = peer.call(conn.peer, stream);
+  tune(call);
   call.on('stream', (s) => set({ remoteStream: s }));
 }
 
@@ -117,8 +141,8 @@ export function onMessage(fn: (m: RemoteMsg) => void) {
   };
 }
 
-/** Host side: ask the guest to take shot `index` and wait for the JPEG. */
-export function requestGuestShot(index: number, countdown: number): Promise<Blob> {
+/** Host side: ask the guest to shoot `index` on the same countdown and wait for their frame. */
+export function requestGuestShot(index: number, countdown: number): Promise<{ raw: Blob; fx?: Blob }> {
   send({ t: 'shoot', index, countdown });
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -129,7 +153,10 @@ export function requestGuestShot(index: number, countdown: number): Promise<Blob
       if (m.t === 'shot' && m.index === index) {
         clearTimeout(timer);
         off();
-        resolve(new Blob([m.data], { type: 'image/jpeg' }));
+        resolve({
+          raw: new Blob([m.data], { type: 'image/jpeg' }),
+          fx: m.fx ? new Blob([m.fx], { type: 'image/png' }) : undefined,
+        });
       }
     });
   });
