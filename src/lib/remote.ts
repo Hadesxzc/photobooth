@@ -37,7 +37,8 @@ const listeners = new Set<(m: RemoteMsg) => void>();
 
 const set = useRemote.setState;
 
-/** Favour a smooth frame rate over sharpness for the live call; photos are sent separately at full quality. */
+/** Keep the live call sharp and steady: enough bitrate for a clear face, balanced between detail and frame rate.
+ *  Photos are sent separately at full quality. */
 function tune(c: MediaConnection) {
   const apply = () => {
     const pc = c.peerConnection;
@@ -45,12 +46,11 @@ function tune(c: MediaConnection) {
     for (const sender of pc.getSenders()) {
       const track = sender.track;
       if (!track || track.kind !== 'video') continue;
-      if ('contentHint' in track) track.contentHint = 'motion';
       const params = sender.getParameters();
       if (!params.encodings?.length) params.encodings = [{}];
       params.encodings[0].maxFramerate = 30;
-      params.encodings[0].maxBitrate = 1_500_000;
-      (params as RTCRtpSendParameters & { degradationPreference?: string }).degradationPreference = 'maintain-framerate';
+      params.encodings[0].maxBitrate = 2_500_000;
+      (params as RTCRtpSendParameters & { degradationPreference?: string }).degradationPreference = 'balanced';
       sender.setParameters(params).catch(() => undefined);
     }
   };

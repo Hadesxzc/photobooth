@@ -6,7 +6,7 @@ import { canvasToBlob } from './filters';
 import { loadImage } from './compose';
 
 /** How far each half reaches past the centre line, as a fraction of the frame width. */
-export const DUO_OVERLAP = 0.04;
+export const DUO_OVERLAP = 0.01;
 /** Width of each half including its overlap. */
 export const DUO_HALF = 0.5 + DUO_OVERLAP;
 
